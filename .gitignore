@@ -1,0 +1,5 @@
+build/*
+*.pyc
+*.qmr
+tests/QMTest/*_target
+share/doc/qmtest/html/tutorial/*
