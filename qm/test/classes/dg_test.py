@@ -17,7 +17,7 @@
 # Imports
 ########################################################################
 
-from   dejagnu_test import DejaGNUTest
+from   .dejagnu_test import DejaGNUTest
 import fnmatch
 import os
 from   qm.test.result import Result
@@ -135,7 +135,7 @@ class DGTest(DejaGNUTest):
         else:
             # We prepend "./" for output compatibility with DejaGNU.
             self._name = os.path.join(".", os.path.basename(path))
-        for l in open(path).xreadlines():
+        for l in open(path):
             line_num += 1
             m = self.__dg_command_regexp.search(l)
             if m:
@@ -271,8 +271,7 @@ class DGTest(DejaGNUTest):
 
         'result' -- The 'Result' of this test."""
 
-        raise self.DGException, \
-              'dg-final command \"%s\" is not implemented' % command
+        raise self.DGException('dg-final command \"%s\" is not implemented' % command)
         
         
     def _PruneOutput(self, output):
@@ -501,7 +500,7 @@ class DGTest(DejaGNUTest):
         words = selector.split()
         # Check the first word.
         if words[0] != "target" and words[0] != "xfail":
-            raise QMException, "Invalid selector."
+            raise QMException("Invalid selector.")
         # The rest of the selector is a space-separate list of
         # patterns.  See if any of them are matched by the current
         # target platform.

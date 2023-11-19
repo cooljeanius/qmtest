@@ -257,7 +257,7 @@ class Result:
         returns -- If the test failed, return the cause of the
         failure, if available."""
 
-        if self.has_key(Result.CAUSE):
+        if Result.CAUSE in self:
             return self[Result.CAUSE]
         else:
             return ""
@@ -387,7 +387,7 @@ class Result:
         element.setAttribute("kind", self.GetKind())
         element.setAttribute("outcome", str(self.GetOutcome()))
         # Add an annotation element for each annotation.
-        keys = self.keys()
+        keys = list(self.keys())
         keys.sort()
         for key in keys:
             value = self[key]
@@ -408,37 +408,37 @@ class Result:
     # annotations.
     
     def __getitem__(self, key):
-        assert type(key) in types.StringTypes
+        assert type(key) in (str,)
         return self.__annotations[key]
 
 
     def __setitem__(self, key, value):
-        assert type(key) in types.StringTypes
-        assert type(value) in types.StringTypes
+        assert type(key) in (str,)
+        assert type(value) in (str,)
         self.__annotations[key] = value
 
 
     def __delitem__(self, key):
-        assert type(key) in types.StringTypes
+        assert type(key) in (str,)
         del self.__annotations[key]
 
 
     def get(self, key, default=None):
-        assert type(key) in types.StringTypes
+        assert type(key) in (str,)
         return self.__annotations.get(key, default)
 
 
     def has_key(self, key):
-        assert type(key) in types.StringTypes
-        return self.__annotations.has_key(key)
+        assert type(key) in (str,)
+        return key in self.__annotations
 
 
     def keys(self):
-        return self.__annotations.keys()
+        return list(self.__annotations.keys())
 
 
     def items(self):
-        return self.__annotations.items()
+        return list(self.__annotations.items())
 
 
 ########################################################################

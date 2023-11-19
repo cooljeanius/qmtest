@@ -72,7 +72,7 @@ class ResultStream(qm.extension.Extension):
 
         Should not be overridden by subclasses."""
 
-        for key, value in annotations.iteritems():
+        for key, value in annotations.items():
             self.WriteAnnotation(key, value)
 
 

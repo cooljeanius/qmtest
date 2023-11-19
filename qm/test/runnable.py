@@ -131,12 +131,12 @@ class Runnable(qm.extension.Extension):
             attachments.append(getattr(self, field.GetName()))
         elif isinstance(field, TupleField):
             subfields = field.GetSubfields()
-            for i in xrange(len(subfields)):
+            for i in range(len(subfields)):
                 self.__GetAttachments(subfields[i], value[i],
                                       attachments)
         elif isinstance(field, SetField):
             subfield = field.GetSubfields()[0]
-            for i in xrange(len(value)):
+            for i in range(len(value)):
                 self.__GetAttachments(subfield, value[i],
                                       attachments)
 

@@ -41,7 +41,7 @@ class TestInterface(Test):
     def Run(self, context, result):
 
         try:
-            if not isinstance(self.GetId(), types.StringType):
+            if not isinstance(self.GetId(), bytes):
                 result.Fail("GetId() did not return a string.")
             if not isinstance(self.GetDatabase(), Database):
                 result.Fail("GetDatabase() did not return a Database.")

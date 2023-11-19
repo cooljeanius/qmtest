@@ -48,7 +48,7 @@ For example:
 # imports
 ########################################################################
 
-import common
+from . import common
 import os
 import qm
 import re
@@ -173,25 +173,19 @@ def get_help_set():
 def message(tag, **substitutions):
     """Generate a diagnostic message."""
 
-    return apply(get_diagnostic_set().Generate,
-                 (tag, "message", None),
-                 substitutions)
+    return get_diagnostic_set().Generate(*(tag, "message", None), **substitutions)
 
 
 def error(tag, output=None, **substitutions):
     """Generate or emit an error diagnostic."""
 
-    return apply(get_diagnostic_set().Generate,
-                 (tag, "error", output, ),
-                 substitutions)
+    return get_diagnostic_set().Generate(*(tag, "error", output, ), **substitutions)
 
     
 def warning(tag, output=None, **substitutions):
     """Generate or emit a warning diagnostic."""
 
-    return apply(get_diagnostic_set().Generate,
-                 (tag, "warning", output, ),
-                 substitutions)
+    return get_diagnostic_set().Generate(*(tag, "warning", output, ), **substitutions)
 
 
 def load_messages(tool):

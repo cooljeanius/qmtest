@@ -35,7 +35,7 @@ from   qm.test.result_stream import *
 from   qm.test.suite import *
 import qm.web
 import string
-import StringIO
+import io
 import sys
 import time
 
@@ -572,16 +572,15 @@ class DirPage(QMTestPage):
         self.path = path
         self.database = server.GetDatabase()
         self.subdir_ids = self.database.GetSubdirectories(path)
-        self.subdir_ids = map(lambda l: self.database.JoinLabels(path, l),
-                              self.subdir_ids)
+        self.subdir_ids = [self.database.JoinLabels(path, l) for l in self.subdir_ids]
         self.test_ids = self.database.GetTestIds(path, scan_subdirs=0)
         self.suite_ids = self.database.GetSuiteIds(path, scan_subdirs=0)
         # Do not show implicit suites.  Otherwise, there are two
         # entries for a directory: one as a subdirectory entry, and
         # the other as a test suite.
-        self.suite_ids = filter(lambda s, d=self.database: \
+        self.suite_ids = list(filter(lambda s, d=self.database: \
                                     not d.GetSuite(s).IsImplicit(),
-                                self.suite_ids)
+                                self.suite_ids))
         self.resource_ids = self.database.GetResourceIds(path, scan_subdirs=0)
 
         # Get the results to date.
@@ -632,9 +631,9 @@ class DirPage(QMTestPage):
 
         # Else use the test_results.
         if directory == "":
-            return self.test_results.values()
+            return list(self.test_results.values())
         else:
-            return [r for r in self.test_results.values()
+            return [r for r in list(self.test_results.values())
                     if self.IsLabelInDirectory(r.GetId(), directory)]
                       
 
@@ -870,7 +869,7 @@ class DirPage(QMTestPage):
         refreshed.  This function is only called if 'IsFinished' returns
         true."""
 
-        if len(self.test_results.items()) < 50:
+        if len(list(self.test_results.items())) < 50:
             return 10
         else:
             return 30
@@ -1647,12 +1646,12 @@ class StorageResultsStream(ResultStream):
         # Go through all of the tests we are about to run and remove
         # corresponding results.
         for id in test_ids:
-            if self.__test_results.has_key(id):
+            if id in self.__test_results:
                 del self.__test_results[id]
             self.__test_results_in_order \
-                = filter(lambda r, rs=self.__test_results: \
-                             rs.has_key(r.GetId()),
-                         self.__test_results_in_order)
+                = list(filter(lambda r, rs=self.__test_results: \
+                             r.GetId() in rs,
+                         self.__test_results_in_order))
         self.__lock.release()
         
         
@@ -1772,8 +1771,8 @@ class TestResultsPage(QMTestPage):
 
         returns -- The results with the given 'outcome'."""
 
-        return filter(lambda r, o=outcome: r.GetOutcome() == o,
-                      self.test_results)
+        return list(filter(lambda r, o=outcome: r.GetOutcome() == o,
+                      self.test_results))
     
         
     def GetCount(self, outcome):
@@ -1808,15 +1807,15 @@ class TestResultsPage(QMTestPage):
         returned.  If false, unexpected results are returned."""
 
         if expected:
-            return filter(lambda r, er=self.expected_outcomes: \
+            return list(filter(lambda r, er=self.expected_outcomes: \
                               r.GetOutcome() == er.get(r.GetId(),
                                                         Result.PASS),
-                          results)
+                          results))
         else:
-            return filter(lambda r, er=self.expected_outcomes: \
+            return list(filter(lambda r, er=self.expected_outcomes: \
                               r.GetOutcome() != er.get(r.GetId(),
                                                         Result.PASS),
-                          results)
+                          results))
 
 
     def GetDetailUrl(self, test_id):
@@ -1967,10 +1966,10 @@ class QMTestServer(qm.web.WebServer):
         # Bind the server to the specified address.
         try:
             self.Bind()
-        except qm.web.AddressInUseError, address:
-            raise RuntimeError, qm.error("address in use", address=address)
+        except qm.web.AddressInUseError as address:
+            raise RuntimeError(qm.error("address in use", address=address))
         except qm.web.PrivilegedPortError:
-            raise RuntimeError, qm.error("privileged port", port=port)
+            raise RuntimeError(qm.error("privileged port", port=port))
 
 
     def GetContext(self):
@@ -2053,7 +2052,7 @@ class QMTestServer(qm.web.WebServer):
 
         # Redirect to the main page.
         request = qm.web.WebRequest("dir", base=request)
-        raise qm.web.HttpRedirect, request
+        raise qm.web.HttpRedirect(request)
     
 
     def HandleCreateSuite(self, request):
@@ -2114,10 +2113,10 @@ class QMTestServer(qm.web.WebServer):
         elif script_name == "delete-resource":
             database.RemoveExtension(item_id, database.RESOURCE)
         else:
-            raise RuntimeError, "unrecognized script name"
+            raise RuntimeError("unrecognized script name")
         # Redirect to the main page.
         request = qm.web.WebRequest("dir", base=request)
-        raise qm.web.HttpRedirect, request
+        raise qm.web.HttpRedirect(request)
 
 
     def HandleDeleteSuite(self, request):
@@ -2133,7 +2132,7 @@ class QMTestServer(qm.web.WebServer):
         suite_id = request["id"]
         database.RemoveExtension(suite_id, database.SUITE)
         # Redirect to the main page.
-        raise qm.web.HttpRedirect, qm.web.WebRequest("dir", base=request)
+        raise qm.web.HttpRedirect(qm.web.WebRequest("dir", base=request))
 
 
     def HandleDir(self, request):
@@ -2244,7 +2243,7 @@ class QMTestServer(qm.web.WebServer):
         """
         
         # Extract and expand the IDs of tests to run.
-        if request.has_key("ids"):
+        if "ids" in request:
             ids = string.split(request["ids"], ",")
             # '.' is an alias for <all>, and thus shadows other selectors.
             if '.' in ids:
@@ -2274,7 +2273,7 @@ class QMTestServer(qm.web.WebServer):
         
         # Redirect to the results page.
         request = qm.web.WebRequest("show-results", base=request)
-        raise qm.web.HttpRedirect, request
+        raise qm.web.HttpRedirect(request)
 
 
     def HandleSaveContext(self, request):
@@ -2285,7 +2284,7 @@ class QMTestServer(qm.web.WebServer):
         # Start with the empty string.
         s = ""
         # Run through all of the context variables.
-        for (name, value) in self.__context.items():
+        for (name, value) in list(self.__context.items()):
             s = s + "%s=%s\n" % (name, value)
             
         return ("application/x-qmtest-context", s)
@@ -2297,12 +2296,12 @@ class QMTestServer(qm.web.WebServer):
         'request' -- The 'WebRequest' that caused the event."""
         
         # Create a string stream to store the results.
-        s = StringIO.StringIO()
+        s = io.StringIO()
         # Create a results stream for storing the results.
         rsc = qm.test.cmdline.get_qmtest().GetFileResultStreamClass()
         rs = rsc({ "file" : s })
         # Write all the results.
-        for (id, outcome) in self.__expected_outcomes.items():
+        for (id, outcome) in list(self.__expected_outcomes.items()):
             r = Result(Result.TEST, id, outcome)
             rs.WriteResult(r)
         # Terminate the stream.
@@ -2321,16 +2320,16 @@ class QMTestServer(qm.web.WebServer):
         'request' -- The 'WebRequest' that caused the event."""
 
         # Create a string stream to store the results.
-        s = StringIO.StringIO()
+        s = io.StringIO()
         # Create a results stream for storing the results.
         rsc = qm.test.cmdline.get_qmtest().GetFileResultStreamClass()
         rs = rsc({ "file" : s })
         # Write all the annotations.
         rs.WriteAllAnnotations(self.__results_stream.GetAnnotations())
         # Write all the results.
-        for r in self.__results_stream.GetTestResults().values():
+        for r in list(self.__results_stream.GetTestResults().values()):
             rs.WriteResult(r)
-        for r in self.__results_stream.GetResourceResults().values():
+        for r in list(self.__results_stream.GetResourceResults().values()):
             rs.WriteResult(r)
         # Terminate the stream.
         rs.Summarize()
@@ -2460,14 +2459,14 @@ class QMTestServer(qm.web.WebServer):
             if type == "resource":
                 try:
                     item = database.GetResource(item_id)
-                except qm.test.database.NoSuchTestError, e:
+                except qm.test.database.NoSuchTestError as e:
                     # An test with the specified test ID was not fount.
                     # Show a page indicating the error.
                     return qm.web.generate_error_page(request, str(e))
             elif type == "test":
                 try:
                     item = database.GetTest(item_id)
-                except qm.test.database.NoSuchResourceError, e:
+                except qm.test.database.NoSuchResourceError as e:
                     # An test with the specified resource ID was not fount.
                     # Show a page indicating the error.
                     return qm.web.generate_error_page(request, str(e))
@@ -2541,12 +2540,12 @@ class QMTestServer(qm.web.WebServer):
         if type == "resource":
             try:
                 item = database.GetResource(item_id)
-            except qm.test.database.NoSuchTestError, e:
+            except qm.test.database.NoSuchTestError as e:
                 return qm.web.generate_error_page(request, str(e))
         elif type == "test":
             try:
                 item = database.GetTest(item_id)
-            except qm.test.database.NoSuchResourceError, e:
+            except qm.test.database.NoSuchResourceError as e:
                 return qm.web.generate_error_page(request, str(e))
 
         # Generate HTML.
@@ -2596,7 +2595,7 @@ class QMTestServer(qm.web.WebServer):
 
         'request' -- The 'WebRequest' that caused the event."""
 
-        raise SystemExit, None
+        raise SystemExit(None)
 
 
     def HandleStopTests(self, request):
@@ -2608,7 +2607,7 @@ class QMTestServer(qm.web.WebServer):
         self.__execution_thread.RequestTermination()
         # Redirect to the results page.
         request = qm.web.WebRequest("show-results", base=request)
-        raise qm.web.HttpRedirect, request
+        raise qm.web.HttpRedirect(request)
 
 
     def HandleSubmitContext(self, request):
@@ -2620,12 +2619,12 @@ class QMTestServer(qm.web.WebServer):
 
         vars = qm.web.decode_properties(request["context_vars"])
         self.__context = Context()
-        for k in vars.keys():
+        for k in list(vars.keys()):
             self.__context[k] = vars[k]
 
         # Redirect to the main page.
         request = qm.web.WebRequest("dir", base=request)
-        raise qm.web.HttpRedirect, request
+        raise qm.web.HttpRedirect(request)
 
 
     def HandleSubmitContextFile(self, request):
@@ -2636,11 +2635,11 @@ class QMTestServer(qm.web.WebServer):
         # The context data.
         data = request["file"]
         # Create a file objet to read from.
-        file = StringIO.StringIO(data)
+        file = io.StringIO(data)
         # Parse the assignments in the context file.
         assignments = qm.common.read_assignments(file)
         # Add them to the context.
-        for (name, value) in assignments.items():
+        for (name, value) in list(assignments.items()):
             try:
                 self.__context[name] = value
             except ValueError:
@@ -2670,7 +2669,7 @@ class QMTestServer(qm.web.WebServer):
         # Get the results file data.
         data = request["file"]
         # Create a file object from the data.
-        f = StringIO.StringIO(data)
+        f = io.StringIO(data)
         # Read the results.
         self.__expectation_db = \
             qm.test.base.load_expectations(f, self.GetDatabase())
@@ -2700,7 +2699,7 @@ class QMTestServer(qm.web.WebServer):
 
         # Redirect to the main page.
         request = qm.web.WebRequest("dir", base=request)
-        raise qm.web.HttpRedirect, request
+        raise qm.web.HttpRedirect(request)
     
         
     def HandleSubmitItem(self, request):
@@ -2798,7 +2797,7 @@ class QMTestServer(qm.web.WebServer):
 
         # Redirect to a page that displays the newly-edited item.
         request = qm.web.WebRequest("show-" + type, base=request, id=item_id)
-        raise qm.web.HttpRedirect, request
+        raise qm.web.HttpRedirect(request)
 
 
     def HandleSubmitResults(self, request):
@@ -2809,7 +2808,7 @@ class QMTestServer(qm.web.WebServer):
         # Get the results file data.
         data = request["file"]
         # Create a file object from the data.
-        f = StringIO.StringIO(data)
+        f = io.StringIO(data)
         # Read the results.
         results = qm.test.base.load_results(f, self.GetDatabase())
         # Enter them into a new results stream.
@@ -2868,8 +2867,7 @@ class QMTestServer(qm.web.WebServer):
         # Store it.
         database.WriteExtension(suite_id, suite)
         # Redirect to a page that displays the newly-edited item.
-        raise qm.web.HttpRedirect, \
-              qm.web.WebRequest("show-suite", base=request, id=suite_id)
+        raise qm.web.HttpRedirect(qm.web.WebRequest("show-suite", base=request, id=suite_id))
 
 
     def MakeNewTest(self, test_class_name, test_id):
@@ -2886,8 +2884,8 @@ class QMTestServer(qm.web.WebServer):
                                                  self.GetDatabase())
         # Make sure there isn't already such a test.
         if self.GetDatabase().HasTest(test_id):
-            raise RuntimeError, qm.error("test already exists",
-                                         test_id=test_id)
+            raise RuntimeError(qm.error("test already exists",
+                                         test_id=test_id))
         # Construct an argument map containing default values.
         arguments = {}
         for field in get_class_arguments(test_class):
@@ -2914,8 +2912,8 @@ class QMTestServer(qm.web.WebServer):
                                             self.GetDatabase())
         # Make sure there isn't already such a resource.
         if self.GetDatabase().HasResource(resource_id):
-            raise RuntimeError, qm.error("resource already exists",
-                                         resource_id=resource_id)
+            raise RuntimeError(qm.error("resource already exists",
+                                         resource_id=resource_id))
         # Construct an argument map containing default values.
         arguments = {}
         for field in get_class_arguments(resource_class):
@@ -2930,7 +2928,7 @@ class QMTestServer(qm.web.WebServer):
     def _HandleRoot(self, request):
         """Handle the '/' URL."""
 
-        raise qm.web.HttpRedirect, qm.web.WebRequest("/test/dir")
+        raise qm.web.HttpRedirect(qm.web.WebRequest("/test/dir"))
 
 
     def _ClosePopupAndRedirect(self, url):

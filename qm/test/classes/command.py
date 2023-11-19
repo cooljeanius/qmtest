@@ -17,7 +17,7 @@
 # Imports
 ########################################################################
 
-import cPickle
+import pickle
 import errno
 import os
 import qm.common
@@ -136,10 +136,10 @@ class ExecTestBase(Test):
         # in the environment.
         environment = os.environ.copy()
         # Copy context variables into the environment.
-        for key, value in context.items():
+        for key, value in list(context.items()):
             # If the value has unicode type, only transfer
             # it if it can be cast to str.
-            if  isinstance(value, unicode):
+            if  isinstance(value, str):
                 try:
                     value = str(value)
                 except UnicodeEncodeError:
@@ -155,9 +155,8 @@ class ExecTestBase(Test):
                 variable, value = string.split(assignment, "=", 1)
                 environment[variable] = value
             else:
-                raise ValueError, \
-                      qm.error("invalid environment assignment",
-                               assignment=assignment)
+                raise ValueError(qm.error("invalid environment assignment",
+                               assignment=assignment))
         return environment
 
 
@@ -355,7 +354,7 @@ class ShellCommandTest(ExecTestBase):
         'Result.PASS' or to add annotations."""
 
         # If the context specifies a shell, use it.
-        if context.has_key("ShellCommandTest.command_shell"):
+        if "ShellCommandTest.command_shell" in context:
             # Split the context value to build the argument list.
             shell = qm.common.split_argument_list(
                 context["ShellCommandTest.command_shell"])
@@ -471,7 +470,7 @@ class ShellScriptTest(ExecTestBase):
         platform-specific default."""
         
         # If the context specifies a shell, use it.
-        if context.has_key("ShellScriptTest.script_shell"):
+        if "ShellScriptTest.script_shell" in context:
             # Split the context value to build the argument list.
             return qm.common.split_argument_list(
                 context["ShellScriptTest.script_shell"])

@@ -15,7 +15,7 @@
 #
 ########################################################################
 
-from compiler_test import CompilationStep, CompilerTest
+from .compiler_test import CompilationStep, CompilerTest
 from   qm.fields import *
 from   qm.test.database import get_database
 from   qm.test.result import *
@@ -24,8 +24,8 @@ from   qm.test.resource import *
 import qm.executable
 from   qm.extension import parse_descriptor
 from   qm.test.base import get_extension_class
-from   compiler import Compiler
-from   local_host import LocalHost
+from   .compiler import Compiler
+from   .local_host import LocalHost
 
 
 def _get_host(context, variable):

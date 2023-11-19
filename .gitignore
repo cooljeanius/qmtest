@@ -3,3 +3,4 @@ build/*
 *.qmr
 tests/QMTest/*_target
 share/doc/qmtest/html/tutorial/*
+*.bak

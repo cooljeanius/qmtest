@@ -36,8 +36,8 @@
 __rcs_id__='$Id$'
 __version__='$Revision$'[11:-2]
 
-from DT_Util import parse_params, name_param, InstanceDict, render_blocks, str
-from DT_Util import TemplateDict
+from .DT_Util import parse_params, name_param, InstanceDict, render_blocks, str
+from .DT_Util import TemplateDict
 class With:
     blockContinuations=()
     name='with'
@@ -52,8 +52,8 @@ class With:
         else: expr=expr.eval
         self.__name__, self.expr = name, expr
         self.section=section.blocks
-        if args.has_key('mapping') and args['mapping']: self.mapping=1
-        if args.has_key('only') and args['only']: self.only=1
+        if 'mapping' in args and args['mapping']: self.mapping=1
+        if 'only' in args and args['only']: self.only=1
 
     def render(self, md):
         expr=self.expr

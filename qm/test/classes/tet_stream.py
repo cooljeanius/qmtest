@@ -17,7 +17,7 @@
 # Imports
 ########################################################################
 
-from   dejagnu_test import DejaGNUTest
+from   .dejagnu_test import DejaGNUTest
 import qm.fields
 import qm.common
 from   qm.test.file_result_stream import FileResultStream
@@ -155,7 +155,7 @@ class TETStream(FileResultStream):
     def _IsDejaGNUResult(self, result):
         """Returns 'True' if 'result' has DejaGNU subtests."""
 
-        for key in result.keys():
+        for key in list(result.keys()):
             if key.startswith(DejaGNUTest.RESULT_PREFIX):
                 return True
         return False
@@ -176,7 +176,7 @@ class TETStream(FileResultStream):
     def _ExtractTime(self, result, key):
         """Extracts the start time from a result."""
 
-        if result.has_key(key):
+        if key in result:
             return self._TETFormatTime(result[key])[0]
         else:
             return "00:00:00"
@@ -231,7 +231,7 @@ class TETStream(FileResultStream):
         # Local system configuration start
         # 20 | pathname mode | text
         self._WriteLine(20, "qmtest -1", "Config Start")
-        for item in self._settings.iteritems():
+        for item in self._settings.items():
             # Configuration variable setting
             # 30 || variable=value
             self._WriteLine(30, "", "%s=%s" % item)
@@ -286,7 +286,7 @@ class TETStream(FileResultStream):
         start with."""
 
         seqnum = seq_start
-        keys = result.keys()
+        keys = list(result.keys())
         keys.sort()
         for key in keys:
             value = result[key]
@@ -327,8 +327,7 @@ class TETStream(FileResultStream):
         self._WriteTCStart(result)
         
         # Get the DejaGNU annotations in sorted order.
-        keys = filter(lambda k: k.startswith(DejaGNUTest.RESULT_PREFIX),
-                      result.keys())
+        keys = [k for k in list(result.keys()) if k.startswith(DejaGNUTest.RESULT_PREFIX)]
         keys.sort(lambda k1, k2: cmp(int(k1[len(DejaGNUTest.RESULT_PREFIX):]),
                                      int(k2[len(DejaGNUTest.RESULT_PREFIX):])))
 
@@ -362,7 +361,7 @@ class TETStream(FileResultStream):
                     DejaGNUTest.UNSUPPORTED: self.UNTESTED,
                     }[outcome]
             # As a special case, check for magic annotation.
-            if result.has_key("test_not_relevant_to_testing_mode"):
+            if "test_not_relevant_to_testing_mode" in result:
                 outcome_num, outcome_name = self.NOTINUSE
 
             # Write per-purpose annotations:
@@ -450,7 +449,7 @@ class TETStream(FileResultStream):
             self._WriteLine(50, "", "Problem with %s resource %s: %s"
                                     % (verbing, id, outcome))
 
-            for key, value in result.items():
+            for key, value in list(result.items()):
                 for line in value.split("\n"):
                     self._WriteLine(50, "", "%s: %s" % (key, line))
 

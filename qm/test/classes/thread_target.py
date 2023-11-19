@@ -22,7 +22,7 @@ from   qm.test.base import *
 import qm.test.cmdline
 from   qm.test.command_thread import *
 from   qm.test.target import *
-import Queue
+import queue
 from   threading import *
 
 ########################################################################
@@ -133,7 +133,7 @@ class ThreadTarget(Target):
         
         # Build the threads.
         self.__threads = []
-        for i in xrange(0, self.threads):
+        for i in range(0, self.threads):
             # Create the new thread.
             thread = LocalThread(self)
             # Start the thread.

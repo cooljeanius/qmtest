@@ -84,7 +84,7 @@ class ExecTest(Test):
         global_namespace, local_namespace = make_namespaces(context)
         # Execute the source code.
         try:
-            exec self.source in global_namespace, local_namespace
+            exec(self.source, global_namespace, local_namespace)
         except:
             # The source raised an unhandled exception, so the test
             # fails
@@ -158,7 +158,7 @@ class BaseExceptionTest(Test):
         global_namespace, local_namespace = make_namespaces(context)
         try:
             # Execute the test code.
-            exec self.source in global_namespace, local_namespace
+            exec(self.source, global_namespace, local_namespace)
         except:
             exc_info = sys.exc_info()
             # Check the exception argument.
@@ -224,7 +224,7 @@ class ExceptionTest(BaseExceptionTest):
 
     def MakeResult(self, exc_info, result):
         # Make sure the exception is an object.
-        if not type(exc_info[0]) in [types.ClassType, type]:
+        if not type(exc_info[0]) in [type, type]:
             result.Fail(qm.message("test raised non-object",
                                    exc_type=str(type(exc_info[0]))))
         # Make sure it's an instance of the right class.
@@ -262,7 +262,7 @@ class ExceptionTest(BaseExceptionTest):
             if expected_argument is None:
                 expected_argument = ()
             # Tuple arguments are unmodified.
-            elif type(expected_argument) is types.TupleType:
+            elif type(expected_argument) is tuple:
                 pass
             # A non-tuple argument is wrapped in a tuple.
             else:
@@ -297,7 +297,7 @@ class StringExceptionTest(BaseExceptionTest):
 
     def MakeResult(self, exc_info, result):
         # Make sure the exception is an object.
-        if not type(exc_info[0]) is types.StringType:
+        if not type(exc_info[0]) is bytes:
             result.Fail(qm.message("test raised non-string",
                                    exc_type=str(type(exc_info[0]))))
         # Make sure it's the right string.

@@ -17,7 +17,7 @@
 # imports
 ########################################################################
 
-import common
+from . import common
 import os
 import qm
 import string
@@ -37,9 +37,9 @@ class MailError(common.QMException):
 ########################################################################
 
 if sys.platform == "win32":
-    from platform_win32 import *
+    from .platform_win32 import *
 else:
-    from platform_unix import *
+    from .platform_unix import *
 
 ########################################################################
 # functions

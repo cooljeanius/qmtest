@@ -41,11 +41,11 @@ program.  The 'temporary_store' global instance should be used."""
 # imports
 ########################################################################
 
-import common
+from . import common
 import mimetypes
 import os
-import xmlutil
-import temporary_directory
+from . import xmlutil
+from . import temporary_directory
 
 ########################################################################
 # classes

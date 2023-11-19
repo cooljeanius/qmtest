@@ -61,24 +61,24 @@ class XMLDatabase(ExtensionDatabase):
         try:
             return self.__LoadItem(test_id, test_path,
                                    self.__ParseTestDocument)
-        except Exception, exception:
+        except Exception as exception:
             # Problem while parsing XML.
             message = qm.error("error loading xml test",
                                test_id=test_id,
                                message=str(exception))
-            raise TestFileError, message
+            raise TestFileError(message)
         
 
     def _GetResourceFromPath(self, resource_id, resource_path):
         try:
             return self.__LoadItem(resource_id, resource_path,
                                    self.__ParseResourceDocument)
-        except Exception, exception:
+        except Exception as exception:
             # Problem while parsing XML.
             message = qm.error("error loading xml resource",
                                resource_id=resource_id,
                                message=str(exception))
-            raise TestFileError, message
+            raise TestFileError(message)
         
     # Helper functions.
 
@@ -196,13 +196,13 @@ class XMLDatabase(ExtensionDatabase):
         test_class_name = qm.extension.get_extension_class_name(test_class)
         # For backwards compatibility, look for "prerequisite" elements.
         for p in document.documentElement.getElementsByTagName("prerequisite"):
-            if not arguments.has_key("prerequisites"):
+            if "prerequisites" not in arguments:
                 arguments["prerequisites"] = []
             arguments["prerequisites"].append((qm.xmlutil.get_dom_text(p),
                                                p.getAttribute("outcome")))
         # For backwards compatibility, look for "resource" elements.
         for r in document.documentElement.getElementsByTagName("resource"):
-            if not arguments.has_key("resources"):
+            if "resources" not in arguments:
                 arguments["resources"] = []
             arguments["resources"].append(qm.xmlutil.get_dom_text(r))
         # Construct a descriptor for it.
@@ -243,7 +243,7 @@ class XMLDatabase(ExtensionDatabase):
 
         # Make sure there is a file by that name.
         if not os.path.isfile(path):
-            raise NoSuchSuiteError, "no suite file %s" % path
+            raise NoSuchSuiteError("no suite file %s" % path)
         # Load and parse the suite file.
         document = qm.xmlutil.load_xml_file(path)
         # For backwards compatibility, handle XML files using the
@@ -258,7 +258,7 @@ class XMLDatabase(ExtensionDatabase):
             # Make sure they're all valid.
             for id_ in test_ids + suite_ids:
                 if not self.IsValidLabel(id_, is_component = 0):
-                    raise RuntimeError, qm.error("invalid id", id=id_)
+                    raise RuntimeError(qm.error("invalid id", id=id_))
             # Construct the suite.
             return ExplicitSuite({ "is_implicit" : "false",
                                    "test_ids" : test_ids,

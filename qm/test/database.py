@@ -583,8 +583,7 @@ class Database(qm.extension.Extension):
         if not labels:
             return ""
 
-        return str(apply(self.__label_class(labels[0]).Join,
-                         labels[1:]))
+        return str(self.__label_class(labels[0]).Join(*labels[1:]))
     
 
     def SplitLabel(self, label):
@@ -592,7 +591,7 @@ class Database(qm.extension.Extension):
 
         returns -- A pair of strings '(directory, basename)'."""
 
-        return map(str, self.__label_class(label).Split())
+        return list(map(str, self.__label_class(label).Split()))
 
 
     def SplitLabelLeft(self, label):
@@ -603,7 +602,7 @@ class Database(qm.extension.Extension):
 
         returns -- A pair of strings '(parent, subpath)'."""
 
-        return map(str, self.__label_class(label).SplitLeft())
+        return list(map(str, self.__label_class(label).SplitLeft()))
 
 
     def GetLabelComponents(self, label):
@@ -916,9 +915,8 @@ class Database(qm.extension.Extension):
 
         if self._is_generic_database:
             extensions = self.GetExtensions(directory, scan_subdirs)
-            extensions = filter(lambda e: e.kind == kind,
-                                extensions.values())
-            return map(lambda e: e.GetId(), extensions)
+            extensions = [e for e in list(extensions.values()) if e.kind == kind]
+            return [e.GetId() for e in extensions]
         
         return []
 
@@ -1061,7 +1059,7 @@ class Database(qm.extension.Extension):
 
         for id in ids:
             # Skip this ID if we've already seen it.
-            if suite_ids.has_key(id) or test_ids.has_key(id):
+            if id in suite_ids or id in test_ids:
                 continue
             # Is this a suite ID?
             if self.HasSuite(id):
@@ -1082,10 +1080,10 @@ class Database(qm.extension.Extension):
                 test_ids[id] = None
             else:
                 # It doesn't look like a test or suite ID.
-                raise ValueError, id
+                raise ValueError(id)
 
         # Convert the maps to sequences.
-        return test_ids.keys(), suite_ids.keys()
+        return list(test_ids.keys()), list(suite_ids.keys())
 
 
     def IsModifiable(self):
@@ -1146,8 +1144,7 @@ def load_database(db_path):
 
     # Make sure it is a directory.
     if not is_database(db_path):
-        raise QMException, \
-              qm.error("not test database", path=db_path)
+        raise QMException(qm.error("not test database", path=db_path))
 
     # Load the file.
     config_path = get_configuration_file(db_path)

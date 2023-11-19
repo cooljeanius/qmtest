@@ -35,7 +35,7 @@ if sys.platform == "win32":
     import win32pipe
     import win32process
 else:
-    import cPickle
+    import pickle
     import fcntl
     import select
     import qm.sigmask
@@ -157,17 +157,17 @@ class Executable(object):
             if environment is not None:
                 # See if there any Unicode strings in the environment.
                 uses_unicode = 0
-                for (k, v) in environment.iteritems():
-                    if (isinstance(k, unicode)
-                        or isinstance(v, unicode)):
+                for (k, v) in environment.items():
+                    if (isinstance(k, str)
+                        or isinstance(v, str)):
                         uses_unicode = 1
                         break
                 # If there are Unicode strings in the environment,
                 # convert all of the key-value pairs to Unicode.
                 if uses_unicode:
                     new_environment = {}
-                    for (k, v) in environment.iteritems():
-                        new_environment[unicode(k)] = unicode(v)
+                    for (k, v) in environment.items():
+                        new_environment[str(k)] = str(v)
                     environment = new_environment
                         
             # Create the child process.
@@ -204,7 +204,7 @@ class Executable(object):
                         # Write it to the pipe.  The traceback object
                         # cannot be pickled, unfortunately, so we
                         # cannot communicate that information.
-                        cPickle.dump(exc_info[:2],
+                        pickle.dump(exc_info[:2],
                                      os.fdopen(exception_pipe[1], "w"),
                                      1)
                     # Exit without running cleanups.
@@ -287,9 +287,9 @@ class Executable(object):
             # the exception thrown by exec.
             if data:
                 # Unpickle the data.
-                exc_info = cPickle.loads(data)
+                exc_info = pickle.loads(data)
                 # And raise it here.
-                raise exc_info[0], exc_info[1]
+                raise exc_info[0](exc_info[1])
 
             return status
 
@@ -531,7 +531,7 @@ class TimeoutExecutable(Executable):
                     max_fds = os.sysconf("SC_OPEN_MAX")
                 except:
                     max_fds = 256
-                for fd in xrange(max_fds):
+                for fd in range(max_fds):
                     try:
                         os.close(fd)
                     except:

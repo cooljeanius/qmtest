@@ -15,7 +15,7 @@
 $Id$"""
 
 import re
-import VSEval
+from . import VSEval
 
 str=__builtins__['str'] # Waaaaa, waaaaaaaa needed for pickling waaaaa
 
@@ -68,7 +68,7 @@ def careful_getattr(md, inst, name, default=_marker):
 
         if validate(inst,inst,name,v,md): return v
 
-    raise ValidationError, name
+    raise ValidationError(name)
 
 def careful_hasattr(md, inst, name):
     v=getattr(inst, name, _marker)
@@ -93,7 +93,7 @@ def careful_getitem(md, mapping, key):
 
     validate=md.validate
     if validate is None or validate(mapping,mapping,None,v,md): return v
-    raise ValidationError, key
+    raise ValidationError(key)
 
 def careful_getslice(md, seq, *indexes):
     v=len(indexes)
@@ -109,7 +109,7 @@ def careful_getslice(md, seq, *indexes):
     if validate is not None:
         for e in v:
             if not validate(seq,seq,None,e,md):
-                raise ValidationError, 'unauthorized access to slice member'
+                raise ValidationError('unauthorized access to slice member')
 
     return v
 
@@ -123,19 +123,19 @@ def careful_range(md, iFirst, *args):
     elif len(args) == 2:
         iStart, iEnd, iStep = iFirst, args[0], args[1]
     else:
-        raise AttributeError, 'range() requires 1-3 int arguments'
-    if iStep == 0: raise ValueError, 'zero step for range()'
+        raise AttributeError('range() requires 1-3 int arguments')
+    if iStep == 0: raise ValueError('zero step for range()')
     iLen = int((iEnd - iStart) / iStep)
     if iLen < 0: iLen = 0
-    if iLen >= RANGELIMIT: raise ValueError, 'range() too large'
-    return range(iStart, iEnd, iStep)
+    if iLen >= RANGELIMIT: raise ValueError('range() too large')
+    return list(range(iStart, iEnd, iStep))
 
 import string, math, random
 
 try:
     import ExtensionClass
     from cDocumentTemplate import InstanceDict, TemplateDict, render_blocks
-except: from pDocumentTemplate import InstanceDict, TemplateDict, render_blocks
+except: from .pDocumentTemplate import InstanceDict, TemplateDict, render_blocks
 
 
 d=TemplateDict.__dict__
@@ -147,7 +147,7 @@ d['math']=math
 d['random']=random
 
 def careful_pow(self, x, y, z):
-    if not z: raise ValueError, 'pow(x, y, z) with z==0'
+    if not z: raise ValueError('pow(x, y, z) with z==0')
     return pow(x,y,z)
 
 d['pow']=careful_pow
@@ -186,11 +186,11 @@ def namespace(self, **kw):
     """Create a tuple consisting of a single instance whose attributes are
     provided as keyword arguments."""
     if getattr(self, '__class__', None) != TemplateDict:
-        raise TypeError,'''A call was made to DT_Util.namespace() with an
+        raise TypeError('''A call was made to DT_Util.namespace() with an
         incorrect "self" argument.  It could be caused by a product which
         is not yet compatible with this version of Zope.  The traceback
-        information may contain more details.)'''
-    return apply(self, (), kw)
+        information may contain more details.)''')
+    return self(*(), **kw)
 
 d['namespace']=namespace
 
@@ -229,7 +229,7 @@ class Eval(VSEval.Eval):
             except KeyError:
                 if name=='_getattr':
                     d['__builtins__']=globals
-                    exec compiled_getattr in d
+                    exec(compiled_getattr, d)
 
         return eval(code,globals,d)
 
@@ -248,37 +248,37 @@ def name_param(params,tag='',expr=0, attr='name', default_unnamed=1):
 
         if v[:1]=='"' and v[-1:]=='"' and len(v) > 1: # expr shorthand
             if used(attr):
-                raise ParseError, ('%s and expr given' % attr, tag)
+                raise ParseError('%s and expr given' % attr, tag)
             if expr:
                 if used('expr'):
-                    raise ParseError, ('two exprs given', tag)
+                    raise ParseError('two exprs given', tag)
                 v=v[1:-1]
                 try: expr=Eval(v, expr_globals)
-                except SyntaxError, v:
-                    raise ParseError, (
+                except SyntaxError as v:
+                    raise ParseError(
                         '<strong>Expression (Python) Syntax error</strong>:'
                         '\n<pre>\n%s\n</pre>\n' % v[0],
                         tag)
                 return v, expr
-            else: raise ParseError, (
+            else: raise ParseError(
                 'The "..." shorthand for expr was used in a tag '
                 'that doesn\'t support expr attributes.',
                 tag)
 
         else: # name shorthand            
             if used(attr):
-                raise ParseError, ('Two %s values were given' % attr, tag)
+                raise ParseError('Two %s values were given' % attr, tag)
             if expr:
                 if used('expr'):
                     # raise 'Waaaaaa', 'waaa'
-                    raise ParseError, ('%s and expr given' % attr, tag)
+                    raise ParseError('%s and expr given' % attr, tag)
                 return params[''],None
             return params['']
 
     elif used(attr):
         if expr:
             if used('expr'):
-                raise ParseError, ('%s and expr given' % attr, tag)
+                raise ParseError('%s and expr given' % attr, tag)
             return params[attr],None
         return params[attr]
     elif expr and used('expr'):
@@ -286,7 +286,7 @@ def name_param(params,tag='',expr=0, attr='name', default_unnamed=1):
         expr=Eval(name, expr_globals)
         return name, expr
         
-    raise ParseError, ('No %s given' % attr, tag)
+    raise ParseError('No %s given' % attr, tag)
 
 Expr_doc="""
 
@@ -398,12 +398,12 @@ def parse_params(text,
         name=mo_unp.group(2)
         l=len(mo_unp.group(1))
         if result:
-            if parms.has_key(name):
-                if parms[name] is None: raise ParseError, (
+            if name in parms:
+                if parms[name] is None: raise ParseError(
                     'Attribute %s requires a value' % name, tag)
 
                 result[name]=parms[name]
-            else: raise ParseError, (
+            else: raise ParseError(
                 'Invalid attribute name, "%s"' % name, tag)
         else:
             result['']=name
@@ -411,22 +411,22 @@ def parse_params(text,
     elif mo_unq:
         name=mo_unq.group(2)
         l=len(mo_unq.group(1))
-        if result: raise ParseError, (
+        if result: raise ParseError(
             'Invalid attribute name, "%s"' % name, tag)
         else: result['']=name
         return parse_params(text[l:],result,**parms)
     else:
         if not text or not text.strip(): return result
-        raise ParseError, ('invalid parameter: "%s"' % text, tag)
+        raise ParseError('invalid parameter: "%s"' % text, tag)
 
-    if not parms.has_key(name):
-        raise ParseError, (
+    if name not in parms:
+        raise ParseError(
             'Invalid attribute name, "%s"' % name, tag)
 
-    if result.has_key(name):
+    if name in result:
         p=parms[name]
         if type(p) is not ListType or p:
-            raise ParseError, (
+            raise ParseError(
                 'Duplicate values for attribute "%s"' % name, tag)
 
     result[name]=value

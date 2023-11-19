@@ -21,11 +21,11 @@ based on context variables provided by the user."""
 # Imports
 ########################################################################
 
-import compiler
+from . import compiler
 import qm
 from   qm.test.database import get_database
 from   qm.test.resource import Resource
-from   local_host import LocalHost
+from   .local_host import LocalHost
 
 ########################################################################
 # Classes

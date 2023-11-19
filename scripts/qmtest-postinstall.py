@@ -23,7 +23,7 @@ def reset_config_variables(config_file, **vars):
 
 
 def install():
-    print 'Adjusting configuration parameters...'
+    print('Adjusting configuration parameters...')
     site_packages = join(sysconfig.get_config_var('BINLIBDEST'), 'site-packages')
     config_file = join(site_packages, 'qm', 'config.py')
     prefix = sysconfig.get_config_var('prefix')
@@ -31,7 +31,7 @@ def install():
     extension_path = join('share', 'qmtest', 'site-extensions-%d.%d'%version)
     reset_config_variables(config_file,
                            prefix=prefix, extension_path=extension_path)
-    print 'Done.'
+    print('Done.')
 
 def remove():
     pass

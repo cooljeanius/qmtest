@@ -109,7 +109,7 @@ __version__='$Revision$'[11:-2]
 
 ParseError='Document Template Parse Error'
 
-from DT_String import String, File
-from DT_HTML import HTML, HTMLFile, HTMLDefault
+from .DT_String import String, File
+from .DT_HTML import HTML, HTMLFile, HTMLDefault
 # import DT_UI # Install HTML editing
-from DT_Util import html_quote
+from .DT_Util import html_quote

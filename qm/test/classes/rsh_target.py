@@ -17,7 +17,7 @@
 # Imports
 ########################################################################
 
-from   process_target import *
+from   .process_target import *
 import string
 
 ########################################################################
@@ -70,7 +70,7 @@ class RSHTarget(ProcessTarget):
         # Because "arguments" is both a field name and class variable,
         # the usual default handling of field arguments will not work
         # corectly; we must explicitly set the default value.
-        if not properties.has_key("arguments"):
+        if "arguments" not in properties:
             properties["arguments"] = ""
             
         # Initialize the base class.

@@ -112,7 +112,7 @@ class CompilationTestDatabase(Database):
 
         dirname = os.path.join(self.srcdir, directory)
         if not os.path.isdir(dirname):
-            raise NoSuchSuiteError, directory
+            raise NoSuchSuiteError(directory)
 
         if kind == Database.TEST:
             ids = [self.JoinLabels(directory, f)

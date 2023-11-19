@@ -396,7 +396,7 @@ class TextResultStream(FileResultStream):
 
         'result' -- The 'Result' to dispay."""
 
-        keys = result.keys()
+        keys = list(result.keys())
         keys.sort()
         for name in keys:
             # The CAUSE property has already been displayed."

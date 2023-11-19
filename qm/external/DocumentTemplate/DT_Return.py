@@ -12,7 +12,7 @@
 ##############################################################################
 __version__='$Revision$'[11:-2]
 
-from DT_Util import parse_params, name_param, html_quote, str
+from .DT_Util import parse_params, name_param, html_quote, str
 import string, sys
 from string import find, split, join, atoi, rfind
 

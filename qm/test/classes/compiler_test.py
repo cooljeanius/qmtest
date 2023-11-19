@@ -13,7 +13,7 @@
 #
 ########################################################################
 
-from   compiler import *
+from   .compiler import *
 from   qm.test.result import *
 from   qm.test.test import *
 import os, dircache
@@ -67,7 +67,7 @@ class CompilerBase:
         'returns' -- The name of the directory in which this test or
         resource will execute."""
 
-        if context.has_key("CompilerTest.scratch_dir"):
+        if "CompilerTest.scratch_dir" in context:
             return os.path.join(context["CompilerTest.scratch_dir"],
                                 self.GetId())
         else:
@@ -506,7 +506,7 @@ class CompilerTest(Test, CompilerBase):
         diagnostic message per line."""
 
         # Compute the string representation of each diagnostic.
-        diagnostic_strings = map(str, diagnostics)
+        diagnostic_strings = list(map(str, diagnostics))
         # Insert a newline between each string.
         result[self._GetAnnotationPrefix() + annotation] \
             = result.Quote("\n".join(diagnostic_strings))

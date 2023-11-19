@@ -49,8 +49,8 @@ class ParameterDatabase(Database):
 
             database = self.GetDatabase()
             id = self.GetId()
-            return map(lambda p, db = database, id = id: db.JoinLabels(id, p),
-                       database._GetParametersForTest(id))
+            return list(map(lambda p, db = database, id = id: db.JoinLabels(id, p),
+                       database._GetParametersForTest(id)))
 
 
         def IsImplicit(self):
@@ -108,9 +108,9 @@ class ParameterDatabase(Database):
                 parameters = db._GetParametersForTest(test)
                 if parameters:
                     suite_ids.append(test)
-                    test_ids.extend(map(lambda p, test=test, db=db:
+                    test_ids.extend(list(map(lambda p, test=test, db=db:
                                         db.JoinLabels(test, p),
-                                        parameters))
+                                        parameters)))
                 else:
                     test_ids.append(test)
             return test_ids, suite_ids + self.__suite_ids
@@ -142,8 +142,8 @@ class ParameterDatabase(Database):
             contained in the wrapped suite."""
 
             database = self.GetDatabase()
-            return map(lambda id, db = database, p = self.__parameter:
-                       db.JoinLabels(id, p), self.__suite.GetSuiteIds())
+            return list(map(lambda id, db = database, p = self.__parameter:
+                       db.JoinLabels(id, p), self.__suite.GetSuiteIds()))
 
 
         def GetTestIds(self):
@@ -151,8 +151,8 @@ class ParameterDatabase(Database):
             parameter set to the tests contained in the wrapped suite."""
 
             database = self.GetDatabase()
-            return map(lambda id, db = database, p = self.__parameter:
-                       db.JoinLabels(id, p), self.__suite.GetTestIds())
+            return list(map(lambda id, db = database, p = self.__parameter:
+                       db.JoinLabels(id, p), self.__suite.GetTestIds()))
 
 
         def IsImplicit(self):
@@ -196,7 +196,7 @@ class ParameterDatabase(Database):
         directory, basename = self.SplitLabel(test_id)
 
         if not self.HasTest(test_id):
-            raise NoSuchTestError, test_id
+            raise NoSuchTestError(test_id)
 
         test = self.__db.GetTest(directory)
         # now generate a new test
@@ -236,8 +236,8 @@ class ParameterDatabase(Database):
 
         tests = []
         for p in self._GetParametersForTest(directory):
-            tests += map(lambda x, p = p, db = self: db.JoinLabels(x, p),
-                         ids)
+            tests += list(map(lambda x, p = p, db = self: db.JoinLabels(x, p),
+                         ids))
         return tests
 
 
@@ -252,7 +252,7 @@ class ParameterDatabase(Database):
         elif self.__db.HasTest(suite_id):
             return ParameterDatabase.ImplicitSuite(self, suite_id)
 
-        raise NoSuchSuiteError, suite_id
+        raise NoSuchSuiteError(suite_id)
 
 
     def HasSuite(self, suite_id):
@@ -271,9 +271,9 @@ class ParameterDatabase(Database):
         
         suite_ids = self.__db.GetSuiteIds(directory, scan_subdirs)
         test_ids = self.__db.GetTestIds(directory, scan_subdirs)
-        param_ids = map(lambda p, d = directory, db = self:
+        param_ids = list(map(lambda p, d = directory, db = self:
                         db.JoinLabels(d, p),
-                        self._GetParametersForTest(directory))
+                        self._GetParametersForTest(directory)))
 
         # The set of all (non-recursive) suite ids is composed of the
         # original suite ids plus original test ids (now being suite ids)
@@ -287,8 +287,8 @@ class ParameterDatabase(Database):
             # everything above combined with all parameters.
             expl_ids = []
             for p in self._GetParametersForTest(directory):
-                expl_ids += map(lambda x, p = p, db = self:
-                                db.JoinLabels(x, p), suite_ids + test_ids)
+                expl_ids += list(map(lambda x, p = p, db = self:
+                                db.JoinLabels(x, p), suite_ids + test_ids))
             return ids + expl_ids
 
 

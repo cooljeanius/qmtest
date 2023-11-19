@@ -59,12 +59,12 @@ class MountDatabase(Database):
         
         def GetTestIds(self):
 
-            return map(self.__joiner, self.__suite.GetTestIds())
+            return list(map(self.__joiner, self.__suite.GetTestIds()))
                                                          
 
         def GetSuiteIds(self):
 
-            return map(self.__joiner, self.__suite.GetSuiteIds())
+            return list(map(self.__joiner, self.__suite.GetSuiteIds()))
 
 
     mounts = DictionaryField(key_field = TextField(),
@@ -92,21 +92,20 @@ class MountDatabase(Database):
         else:
             # Translate relative paths into absolute paths.
             tmp = {}
-            for k,v in self.mounts.iteritems():
+            for k,v in self.mounts.items():
                 tmp[k] = os.path.join(path, v)
             self.mounts = tmp
         # Now translate the value from path to database
-        for k,v in self.mounts.iteritems():
+        for k,v in self.mounts.items():
             if is_database(v):
                 db = load_database(v)
                 self._mounts[k] = db
                 if not label_class:
                     label_class = db.label_class
                 elif label_class != db.label_class:
-                    raise QMException, \
-                          "mounted databases use differing label classes"
+                    raise QMException("mounted databases use differing label classes")
             elif not implicit:
-                raise QMException, "%s does not contain a test database"%v
+                raise QMException("%s does not contain a test database"%v)
                                    
         # Initialize the base class.
         arguments["modifiable"] = "false"
@@ -121,9 +120,9 @@ class MountDatabase(Database):
 
         ids = []
         if directory == "" and kind == Database.SUITE:
-                ids.extend(self._mounts.keys())
+                ids.extend(list(self._mounts.keys()))
         if scan_subdirs:
-            dirs = directory and [directory] or self._mounts.keys()
+            dirs = directory and [directory] or list(self._mounts.keys())
             for d in dirs:
                 database, joiner, subdir = self._SelectDatabase(d)
                 ids += [joiner(i) for i in database.GetIds(kind, subdir, 1)]
@@ -138,8 +137,7 @@ class MountDatabase(Database):
         arguments = contained_test.GetArguments()
         prerequisites = contained_test.GetPrerequisites()
         if prerequisites:
-            new_prerequisites = map(lambda p: (joiner(p[0]), p[1]),
-                                    prerequisites.items())
+            new_prerequisites = [(joiner(p[0]), p[1]) for p in list(prerequisites.items())]
             arguments[Test.PREREQUISITES_FIELD_ID] = new_prerequisites
 
         # Remap the resources.
@@ -172,8 +170,8 @@ class MountDatabase(Database):
 
         joiner, contained_suite \
             = self._GetContainedItem(Database.SUITE, suite_id)
-        test_ids = map(joiner, contained_suite.GetTestIds())
-        suite_ids = map(joiner, contained_suite.GetSuiteIds())
+        test_ids = list(map(joiner, contained_suite.GetTestIds()))
+        suite_ids = list(map(joiner, contained_suite.GetSuiteIds()))
         return MountDatabase.MountedSuite(self, suite_id,
                                           joiner,
                                           contained_suite)
@@ -182,7 +180,7 @@ class MountDatabase(Database):
     def GetSubdirectories(self, directory):
 
         if directory == "":
-            return self._mounts.keys()
+            return list(self._mounts.keys())
         database, joiner, dir = self._SelectDatabase(directory)
         return database.GetSubdirectories(dir)
         
@@ -190,7 +188,7 @@ class MountDatabase(Database):
     def GetClassPaths(self):
 
         paths = []
-        for db in self._mounts.values():
+        for db in list(self._mounts.values()):
             paths.extend(db.GetClassPaths())
             paths.append(get_configuration_directory(db.GetPath()))
         return paths
@@ -209,7 +207,7 @@ class MountDatabase(Database):
         
         resources = arguments.get(Runnable.RESOURCE_FIELD_ID)
         if resources:
-            new_resources = map(joiner, resources)
+            new_resources = list(map(joiner, resources))
             arguments[Runnable.RESOURCE_FIELD_ID] = new_resources
     
 
@@ -231,7 +229,7 @@ class MountDatabase(Database):
             # Look for the item in the contained database.
             try:
                 item = database.GetItem(kind, item_id)
-            except NoSuchItemError, e:
+            except NoSuchItemError as e:
                 # Reset the id.
                 e.item_id = joiner(item_id)
                 raise

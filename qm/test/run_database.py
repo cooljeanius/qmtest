@@ -50,7 +50,7 @@ class RunDatabase(Extension):
         'TestRun's in the database for which 'predicate' returns a
         true value."""
 
-        return filter(self.GetAllRuns(), predicate)
+        return list(filter(self.GetAllRuns(), predicate))
 
 
     def GetAnnotations(self, key):
@@ -134,7 +134,7 @@ class RunDatabase(Extension):
         a true value."""
         
         def predicate(run):
-            for key, pattern in annotation_filter.iteritems():
+            for key, pattern in annotation_filter.items():
                 value = run.GetAnnotation(key)
                 if callable(pattern):
                     if not pattern(value):

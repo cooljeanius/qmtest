@@ -40,8 +40,7 @@ def careful_mul(env, *factors):
         except TypeError:
             c=c*factor
         if s and c > 1000:
-            raise TypeError, \
-                  'Illegal sequence repeat (too many repetitions: %d)' % c
+            raise TypeError('Illegal sequence repeat (too many repetitions: %d)' % c)
         r=r*factor
     return r
 
@@ -82,7 +81,7 @@ class Eval:
           globals -- A global namespace.
         """
         global gparse
-        if gparse is None: import gparse
+        if gparse is None: from . import gparse
 
         expr=strip(expr)
         
@@ -100,7 +99,7 @@ class Eval:
         # made customizable!
         for name in names:
             if name[:1]=='_' and name not in ('_', '_vars', '_getattr'):
-                raise TypeError, 'illegal name used in expression'
+                raise TypeError('illegal name used in expression')
                 
         used={}
 
@@ -131,7 +130,7 @@ class Eval:
             except KeyError:
                 if name=='_getattr':
                     d['__builtins__']=globals
-                    exec compiled_getattr in d
+                    exec(compiled_getattr, d)
 
         return eval(code,globals,d)
 

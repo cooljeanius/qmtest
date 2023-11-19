@@ -87,9 +87,9 @@ class install_extensions(install_lib):
                                           os.path.join(self.install_dir, f)):
                         overlap.append(f)
             if overlap:
-                print "Error: The following extension files already exist:"
+                print("Error: The following extension files already exist:")
                 for o in overlap:
-                    print "       %s"%o
+                    print("       %s"%o)
                 return
             # Copy all modules to the install directory.
             for f in new_files:

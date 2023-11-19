@@ -27,7 +27,7 @@ from   qm.executable import *
 import os
 import os.path
 import qm
-import StringIO
+import io
 import re
 import sys
 if sys.platform != "win32":
@@ -497,7 +497,7 @@ class GCC(Compiler):
         # Assume there were no diagnostics.
         diagnostics = []
         # Create a file object containing the 'output'.
-        f = StringIO.StringIO(output)
+        f = io.StringIO(output)
         # Reall all of the output, line by line.
         for line in f.readlines():
             for severity in self._severities:
@@ -570,7 +570,7 @@ class EDG(Compiler):
         # Assume there were no diagnostics.
         diagnostics = []
         # Create a file object containing the 'output'.
-        f = StringIO.StringIO(output)
+        f = io.StringIO(output)
         # Reall all of the output, line by line.
         for line in f.readlines():
             match = self.__diagnostic_regexp.match(line)

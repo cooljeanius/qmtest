@@ -128,7 +128,7 @@ class sequence_variables:
 
     def query(self, *ignored):
 
-        if self.start_name_re is None: raise KeyError, 'sequence-query'
+        if self.start_name_re is None: raise KeyError('sequence-query')
         query_string=self.query_string
         while query_string and query_string[:1] in '?&':
             query_string=query_string[1:]
@@ -171,7 +171,7 @@ class sequence_variables:
                     if item is mv:
                         item = None
                     if type(item)==type(1):
-                        s=item*long(item)
+                        s=item*int(item)
                     else:
                         s=item*item
                     sum=sum+item
@@ -240,7 +240,7 @@ class sequence_variables:
         return data[key]
 
     def next_batches(self, suffix='batches',key=''):
-        if suffix != 'batches': raise KeyError, key
+        if suffix != 'batches': raise KeyError(key)
         data=self.data
         sequence=self.items
         try:
@@ -267,7 +267,7 @@ class sequence_variables:
         return r
 
     def previous_batches(self, suffix='batches',key=''):
-        if suffix != 'batches': raise KeyError, key
+        if suffix != 'batches': raise KeyError(key)
         data=self.data
         sequence=self.items
         try:
@@ -311,10 +311,10 @@ class sequence_variables:
                     special_prefix=special_prefixes.has_key
                     ):
         data=self.data
-        if data.has_key(key): return data[key]
+        if key in data: return data[key]
 
         l=rfind(key,'-')
-        if l < 0: raise KeyError, key
+        if l < 0: raise KeyError(key)
 
         suffix=key[l+1:]
         prefix=key[:l]
@@ -334,7 +334,7 @@ class sequence_variables:
 
         if key=='sequence-query': return self.query()
             
-        raise KeyError, key
+        raise KeyError(key)
 
 
 

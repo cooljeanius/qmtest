@@ -22,7 +22,7 @@
 # that works on systems without threads.
 
 try:
-    import thread
+    import _thread
     from threading import Lock, RLock
 except:
 

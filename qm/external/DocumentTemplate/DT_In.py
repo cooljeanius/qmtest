@@ -334,10 +334,10 @@
 __rcs_id__='$Id$'
 __version__='$Revision$'[11:-2]
 
-from DT_Util import ParseError, parse_params, name_param, str
-from DT_Util import render_blocks, InstanceDict, ValidationError, VSEval, expr_globals
+from .DT_Util import ParseError, parse_params, name_param, str
+from .DT_Util import render_blocks, InstanceDict, ValidationError, VSEval, expr_globals
 import re
-from DT_InSV import sequence_variables, opt
+from .DT_InSV import sequence_variables, opt
 TupleType=type(())
 
 class InFactory:
@@ -387,7 +387,7 @@ class InClass:
 
         for n in 'orphan','overlap','previous','next':
             if has_key(n) and not self.batch:
-                raise ParseError, (
+                raise ParseError(
                     """
                     The %s attribute was used but neither of the
                     <code>start</code>, <code>end</code>, or <code>size</code>
@@ -410,14 +410,14 @@ class InClass:
         self.__name__, self.expr = name, expr
         self.section=section.blocks
         if len(blocks) > 1:
-            if len(blocks) != 2: raise ParseError, (
+            if len(blocks) != 2: raise ParseError(
                 'too many else blocks', 'in')
             tname, args, section = blocks[1]
             args=parse_params(args, name='')
             if args:
                 ename=name_param(args)
                 if ename != name:
-                    raise ParseError, (
+                    raise ParseError(
                         'name in else does not match in', 'in')
             self.elses=section.blocks
 
@@ -465,8 +465,8 @@ class InClass:
         overlap=int_param(params,md,'overlap',0)
         orphan=int_param(params,md,'orphan','3')
         start,end,sz=opt(start,end,size,orphan,sequence)
-        if params.has_key('next'): next=1
-        if params.has_key('previous'): previous=1
+        if 'next' in params: next=1
+        if 'previous' in params: previous=1
 
         last=end-1
         first=start-1
@@ -558,11 +558,11 @@ class InClass:
                         try: vv=validate(sequence,sequence,None,client,md)
                         except: vv=0
                         if not vv:
-                            if (params.has_key('skip_unauthorized') and
+                            if ('skip_unauthorized' in params and
                                 params['skip_unauthorized']):
                                 if index==first: kw['sequence-start']=0
                                 continue
-                            raise ValidationError, index
+                            raise ValidationError(index)
 
                     kw['sequence-index']=index
                     if type(client)==TupleType and len(client)==2:
@@ -644,11 +644,11 @@ class InClass:
                         try: vv=validate(sequence,sequence,None,client,md)
                         except: vv=0
                         if not vv:
-                            if (self.args.has_key('skip_unauthorized') and
+                            if ('skip_unauthorized' in self.args and
                                 self.args['skip_unauthorized']):
                                 if index==1: kw['sequence-start']=0
                                 continue
-                            raise ValidationError, index
+                            raise ValidationError(index)
 
                     kw['sequence-index']=index
                     if type(client)==TupleType and len(client)==2:
@@ -698,7 +698,7 @@ class InClass:
                          try:
                              if mapping: akey = v[sk]
                              else: akey = getattr(v, sk)
-                         except AttributeError, KeyError: akey = None
+                         except AttributeError as KeyError: akey = None
                          if not basic_type(akey):
                              try: akey = akey()
                              except: pass
@@ -707,7 +707,7 @@ class InClass:
                      try:
                          if mapping: k = v[sort]
                          else: k = getattr(v, sort)
-                     except AttributeError, KeyError: k = None
+                     except AttributeError as KeyError: k = None
                      if not basic_type(k):           
                          try: k = k()
                          except: pass

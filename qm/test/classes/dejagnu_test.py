@@ -17,7 +17,7 @@
 # Imports
 ########################################################################
 
-from   dejagnu_base import DejaGNUBase
+from   .dejagnu_base import DejaGNUBase
 import os
 import qm
 from   qm.common import QMException
@@ -218,7 +218,7 @@ class DejaGNUTest(Test, DejaGNUBase):
         indicate problems with the test itself, such as incorrect
         usage of special test commands."""
 
-        raise DejaGNUError, message
+        raise DejaGNUError(message)
 
         
     def _GetSourcePath(self):
@@ -342,7 +342,7 @@ class DejaGNUTest(Test, DejaGNUBase):
             # A "[" indicates command substitution.
             elif (c == "[" and not in_brace_quoted_string
                   and n < len(s) + 1 and s[n + 1] != "]"):
-                raise QMException, "Tcl command substitution is unsupported."
+                raise QMException("Tcl command substitution is unsupported.")
             # A double-quote indicates the beginning of a double-quoted
             # string.
             elif c == '"' and not in_brace_quoted_string:
@@ -396,7 +396,7 @@ class DejaGNUTest(Test, DejaGNUBase):
             elif c == '\\' and not in_brace_quoted_string:
                 # There should be a character following the backslash.
                 if len(s) == 1:
-                    raise QMException, "Invalid Tcl string."
+                    raise QMException("Invalid Tcl string.")
                 # Skip the backslash.
                 n += 1
                 # See what the next character is.
@@ -412,11 +412,11 @@ class DejaGNUTest(Test, DejaGNUBase):
                         and s[n + 1] in ["0", "1", "2", "3", "4", "5",
                                          "6", "7", "8", "9", "a", "b",
                                          "c", "d", "e", "f"]):
-                        raise QMException, "Unsupported Tcl escape."
+                        raise QMException("Unsupported Tcl escape.")
                     n += 1
                 # "\d" where "d" is a digit indicates an octal literal.
                 elif c.isdigit():
-                    raise QMException, "Unsupported Tcl escape."
+                    raise QMException("Unsupported Tcl escape.")
                 # Any other character just indicates the character
                 # itself.
                 else:

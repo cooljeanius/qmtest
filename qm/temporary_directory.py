@@ -40,14 +40,13 @@ class TemporaryDirectory:
         
         dir_path = tempfile.mktemp()
         try:
-            os.mkdir(dir_path, 0700)
+            os.mkdir(dir_path, 0o700)
         except:
             exc_info = sys.exc_info()
-            raise qm.common.QMException, \
-                  qm.error("temp dir error",
+            raise qm.common.QMException(qm.error("temp dir error",
                            dir_path=dir_path,
                            exc_class=str(exc_info[0]),
-                           exc_arg=str(exc_info[1]))
+                           exc_arg=str(exc_info[1])))
 
         self.__directory = dir_path
     

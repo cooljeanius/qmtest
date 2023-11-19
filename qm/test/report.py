@@ -80,7 +80,7 @@ class ReportGenerator:
             self.output.write("  <run>\n")
         
             annotations = test_run.GetAnnotations()
-            for key, value in annotations.iteritems():
+            for key, value in annotations.items():
 
                 element = self.__document.createElement("annotation")
                 element.setAttribute("key", key)
@@ -119,9 +119,9 @@ class ReportGenerator:
                     file = exp_file
                     reader = base.load_results(file, self.database)
                     expectations = ReaderTestRun(reader)
-            except IOError, e:
+            except IOError as e:
                 raise PythonException("Error reading '%s'"%file, IOError, e)
-            except xml.sax.SAXException, e:
+            except xml.sax.SAXException as e:
                 raise PythonException("Error loading '%s'"%file,
                                       xml.sax.SAXException, e)
             runs.append((results, expectations))

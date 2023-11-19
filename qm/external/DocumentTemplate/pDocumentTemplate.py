@@ -58,24 +58,24 @@ class InstanceDict:
         return hasattr(self.self,key)
 
     def keys(self):
-        return self.self.__dict__.keys()
+        return list(self.self.__dict__.keys())
 
     def __repr__(self): return 'InstanceDict(%s)' % str(self.self)
 
     def __getitem__(self,key):
 
         cache=self.cache
-        if cache.has_key(key): return cache[key]
+        if key in cache: return cache[key]
         
         inst=self.self
 
         if key[:1]=='_':
             if key != '__str__':
-                raise KeyError, key # Don't divuldge private data
+                raise KeyError(key) # Don't divuldge private data
             r=str(inst)
         else:
             try: r=getattr(inst,key)
-            except AttributeError: raise KeyError, key
+            except AttributeError: raise KeyError(key)
 
         v=self.validate
         if v is not None: v(inst,inst,key,r,self.namespace)
@@ -90,8 +90,8 @@ class MultiMapping:
     def __getitem__(self, key):
         for d in self.dicts:
             try: return d[key]
-            except KeyError, AttributeError: pass
-        raise KeyError, key
+            except KeyError as AttributeError: pass
+        raise KeyError(key)
 
     def push(self,d): self.dicts.insert(0,d)
 
@@ -103,7 +103,7 @@ class MultiMapping:
     def keys(self):
         kz = []
         for d in self.dicts:
-            kz = kz + d.keys()
+            kz = kz + list(d.keys())
         return kz
 
 class DictInstance:
@@ -113,7 +113,7 @@ class DictInstance:
 
     def __getattr__(self, name):
         try: return self.__d[name]
-        except KeyError: raise AttributeError, name
+        except KeyError: raise AttributeError(name)
         
 class TemplateDict:
 
@@ -191,9 +191,9 @@ def render_blocks(blocks, md):
                             try:
                                 cond=md[cond]
                                 cache[n]=cond
-                            except KeyError, v:
+                            except KeyError as v:
                                 v=str(v)
-                                if n != v: raise KeyError, v, sys.exc_traceback
+                                if n != v: raise KeyError(v).with_traceback(sys.exc_info()[2])
                                 cond=None
                         else: cond=cond(md)
                         if cond:

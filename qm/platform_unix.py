@@ -18,9 +18,9 @@
 ########################################################################
 
 import base64
-import common
-import cPickle
-import cStringIO
+from . import common
+import pickle
+import io
 import os
 import posix
 import qm

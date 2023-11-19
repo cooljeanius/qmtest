@@ -17,8 +17,8 @@
 # Imports
 ########################################################################
 
-import base
-import database
+from . import base
+from . import database
 import os
 import qm
 import qm.attachment
@@ -40,9 +40,9 @@ from   qm.trace import *
 from   qm.test.web.web import QMTestServer
 import qm.structured_text
 import qm.xmlutil
-import Queue
+import queue
 import random
-from   result import *
+from   .result import *
 import signal
 import string
 import sys
@@ -688,7 +688,7 @@ Valid formats are %s.
 
         returns -- True if the option is present."""
 
-        return option in map(lambda x: x[0], self.__global_options)
+        return option in [x[0] for x in self.__global_options]
     
         
     def GetGlobalOption(self, option, default=None):
@@ -751,7 +751,7 @@ Valid formats are %s.
 
         # Make sure a command was specified.
         if self.__command == "":
-            raise qm.cmdline.CommandError, qm.error("missing command")
+            raise qm.cmdline.CommandError(qm.error("missing command"))
 
         # Look in several places to find the test database:
         #
@@ -760,7 +760,7 @@ Valid formats are %s.
         # 3. The current directory.
         db_path = self.GetGlobalOption("tdb")
         if not db_path:
-            if os.environ.has_key(self.db_path_environment_variable):
+            if self.db_path_environment_variable in os.environ:
                 db_path = os.environ[self.db_path_environment_variable]
             else:
                 db_path = "."
@@ -842,9 +842,8 @@ Valid formats are %s.
             document = qm.xmlutil.load_xml_file(file_name)
             targets_element = document.documentElement
             if targets_element.tagName != "targets":
-                raise QMException, \
-                      qm.error("could not load target file",
-                               file = file_name)
+                raise QMException(qm.error("could not load target file",
+                               file = file_name))
             targets = []
             for node in targets_element.getElementsByTagName("extension"):
                 # Parse the DOM node.
@@ -860,9 +859,8 @@ Valid formats are %s.
 
             return targets
         except Context:
-            raise QMException, \
-                  qm.error("could not load target file",
-                           file=file_name)
+            raise QMException(qm.error("could not load target file",
+                           file=file_name))
 
         
         
@@ -886,9 +884,8 @@ Valid formats are %s.
                     try:
                         concurrency = int(concurrency)
                     except ValueError:
-                        raise qm.cmdline.CommandError, \
-                              qm.error("concurrency not integer",
-                                       value=concurrency)
+                        raise qm.cmdline.CommandError(qm.error("concurrency not integer",
+                                       value=concurrency))
                 # Construct the target.
                 arguments = {}
                 arguments["name"] = "local"
@@ -943,10 +940,10 @@ Valid formats are %s.
                 try:
                     # Insert it into the context.
                     context[name] = value
-                except ValueError, msg:
+                except ValueError as msg:
                     # The format of the context key is invalid, but
                     # raise a 'CommandError' instead.
-                    raise qm.cmdline.CommandError, msg
+                    raise qm.cmdline.CommandError(msg)
 
         return context
 
@@ -1039,9 +1036,9 @@ Valid formats are %s.
         extension_id = self.GetCommandOption("id")
         if extension_id is not None:
             if not database:
-                raise QMException, qm.error("no db specified")
+                raise QMException(qm.error("no db specified"))
             if not database.IsModifiable():
-                raise QMException, qm.error("db not modifiable")
+                raise QMException(qm.error("db not modifiable"))
             extension_loader = database.GetExtension
         else:
             extension_loader = None
@@ -1255,11 +1252,11 @@ Valid formats are %s.
         attributes = (self.__GetAttributeOptions(False)
                       or class_._argument_dictionary)
 
-        print ""
-        print "class name:", get_extension_class_name(class_)
-        print "  ", get_class_description(class_, brief=not long_format)
-        print ""
-        print "class attributes:"
+        print("")
+        print("class name:", get_extension_class_name(class_))
+        print("  ", get_class_description(class_, brief=not long_format))
+        print("")
+        print("class attributes:")
         tab = max([len(name) for name in attributes])
         for name in attributes:
             field = class_._argument_dictionary.get(name)
@@ -1270,7 +1267,7 @@ Valid formats are %s.
             description = field.GetDescription()
             if not long_format:
                 description = qm.structured_text.get_first(description)
-            print "   %-*s     %s"%(tab, name, description)
+            print("   %-*s     %s"%(tab, name, description))
 
 
     def __ExecuteList(self):
@@ -1290,7 +1287,7 @@ Valid formats are %s.
         for arg in args:
             extension = database.GetExtension(arg)
             if not extension:
-                raise QMException, qm.error("no such ID", id = arg)
+                raise QMException(qm.error("no such ID", id = arg))
             if isinstance(extension, qm.test.suite.Suite):
                 if recursive:
                     test_ids, suite_ids = extension.GetAllTestAndSuiteIds()
@@ -1304,13 +1301,13 @@ Valid formats are %s.
                 extensions[arg] = extension
 
         # Get the labels for the extensions, in alphabetical order.
-        ids = extensions.keys()
+        ids = list(extensions.keys())
         ids.sort()
 
         # In the short format, just print the labels.
         if not long_format:
             for id in ids:
-                print >> sys.stdout, id
+                print(id, file=sys.stdout)
             return 0
 
         # In the long format, print three columns: the extension kind,
@@ -1339,15 +1336,14 @@ Valid formats are %s.
                     if class_len > longest_class:
                         longest_class = class_len
                 else:
-                    print >> sys.stdout, \
-                          "%-*s%-*s%s" % (longest_kind, kind,
-                                          longest_class, class_name, id)
+                    print("%-*s%-*s%s" % (longest_kind, kind,
+                                          longest_class, class_name, id), file=sys.stdout)
                     if details_format:
                         tab = max([len(name)
                                    for name in extension._argument_dictionary])
                         for name in extension._argument_dictionary:
                             value = str(getattr(extension, name))
-                            print "   %-*s     %s"%(tab, name, value)
+                            print("   %-*s     %s"%(tab, name, value))
 
         return 0
         
@@ -1367,9 +1363,8 @@ Valid formats are %s.
 
         # Check that the CLASS_NAME is well-formed.
         if class_name.count('.') != 1:
-            raise qm.cmdline.CommandError, \
-                  qm.error("invalid class name",
-                           class_name = class_name)
+            raise qm.cmdline.CommandError(qm.error("invalid class name",
+                           class_name = class_name))
         module, name = class_name.split('.')
 
         # Try to load the database.  It may provide additional
@@ -1391,9 +1386,8 @@ Valid formats are %s.
 
         # If we could not find the module, issue an error message.
         if not found:
-            raise qm.QMException, \
-                  qm.error("module does not exist",
-                           module = module)
+            raise qm.QMException(qm.error("module does not exist",
+                           module = module))
 
         # Inform the user of the location in which QMTest found the
         # module.  (Sometimes, there might be another module with the
@@ -1420,7 +1414,7 @@ Valid formats are %s.
         
         # Copy entries from the old file to the new one.
         extensions = get_extension_class_names_in_directory(directory)
-        for k, ns in extensions.iteritems():
+        for k, ns in extensions.items():
             for n in ns:
                 # Remove previous entries for the class being added.
                 if k == kind and n == class_name:
@@ -1465,8 +1459,7 @@ Valid formats are %s.
                 for id in id_arguments:
                     extension = database.GetExtension(id)
                     if not extension:
-                        raise qm.cmdline.CommandError, \
-                              qm.error("no such ID", id = id)
+                        raise qm.cmdline.CommandError(qm.error("no such ID", id = id))
                     if extension.kind == database.SUITE:
                         ids.update(extension.GetAllTestAndSuiteIds()[0])
                     else:
@@ -1481,11 +1474,10 @@ Valid formats are %s.
         # Get an iterator over the results.
         try:
             results = base.load_results(results_path, database)
-        except Exception, exception:
-            raise QMException, \
-                  qm.error("invalid results file",
+        except Exception as exception:
+            raise QMException(qm.error("invalid results file",
                            path=results_path,
-                           problem=str(exception))
+                           problem=str(exception)))
 
         any_unexpected_outcomes = 0
 
@@ -1519,7 +1511,7 @@ Valid formats are %s.
             # resource result here.
             if (ids is not None
                 and r.GetOutcome() == Result.UNTESTED
-                and r.has_key(Result.RESOURCE)):
+                and Result.RESOURCE in r):
                 rid = r[Result.RESOURCE]
                 rres = resource_results.get(rid)
                 if rres:
@@ -1552,7 +1544,7 @@ Valid formats are %s.
         target = target_class(database, { "name" : "child" })
 
         # Start the target.
-        response_queue = Queue.Queue(0)
+        response_queue = queue.Queue(0)
         target.Start(response_queue)
         
         # Read commands from standard input, and reply to standard
@@ -1563,7 +1555,7 @@ Valid formats are %s.
             
             # If the command is just a string, it should be
             # the 'Stop' command.
-            if isinstance(command, types.StringType):
+            if isinstance(command, bytes):
                 assert command == "Stop"
                 target.Stop()
                 break
@@ -1581,7 +1573,7 @@ Valid formats are %s.
                 try:
                     result = response_queue.get(0)
                     results.append(result)
-                except Queue.Empty:
+                except queue.Empty:
                     # There are no more results.
                     break
             # Pass the results back.
@@ -1629,8 +1621,7 @@ Valid formats are %s.
             try:
                 seed = int(seed)
             except ValueError:
-                raise qm.cmdline.CommandError, \
-                      qm.error("seed not integer", seed=seed)
+                raise qm.cmdline.CommandError(qm.error("seed not integer", seed=seed))
             # Use the specified seed.
             random.seed(seed)
 
@@ -1647,11 +1638,10 @@ Valid formats are %s.
             test_ids, test_suites \
                       = self.GetDatabase().ExpandIds(self.__arguments)
         except (qm.test.database.NoSuchTestError,
-                qm.test.database.NoSuchSuiteError), exception:
-            raise qm.cmdline.CommandError, str(exception)
-        except ValueError, exception:
-            raise qm.cmdline.CommandError, \
-                  qm.error("no such ID", id=str(exception))
+                qm.test.database.NoSuchSuiteError) as exception:
+            raise qm.cmdline.CommandError(str(exception))
+        except ValueError as exception:
+            raise qm.cmdline.CommandError(qm.error("no such ID", id=str(exception)))
 
         # Handle the --annotate options.
         annotations = self.__GetAnnotateOptions()
@@ -1714,7 +1704,7 @@ Valid formats are %s.
         try:
             port_number = int(port_number)
         except ValueError:
-            raise qm.cmdline.CommandError, qm.error("bad port number")
+            raise qm.cmdline.CommandError(qm.error("bad port number"))
         # Get the local address specified by a command option, if any.
         # If not was specified, use the loopback address.  The loopback
         # address is used by default for security reasons; it restricts
@@ -1744,8 +1734,8 @@ Valid formats are %s.
                                                  "qmtest")
             try:
                 pid_file = open(pid_file_path, "w")
-            except IOError, e:
-                raise qm.cmdline.CommandError, str(e)
+            except IOError as e:
+                raise qm.cmdline.CommandError(str(e))
         else:
             pid_file = None
             
@@ -1763,7 +1753,7 @@ Valid formats are %s.
         # Make sure this is either an ExpectationDatabase or a
         # PreviousRun
         if not type(expectations) in (ExpectationDatabase, PreviousTestRun):
-            raise qm.cmdline.CommandError, 'not a valid results file'
+            raise qm.cmdline.CommandError('not a valid results file')
         # Figure out which targets to use.
         targets = self.GetTargets()
         # Compute the context in which the tests will be run.
@@ -1814,7 +1804,7 @@ Valid formats are %s.
             # Accept requests.
             try:
                 server.Run()
-            except qm.platform.SignalException, se:
+            except qm.platform.SignalException as se:
                 if se.GetSignalNumber() == signal.SIGTERM:
                     # If we receive SIGTERM, shut down.
                     pass
@@ -1874,9 +1864,8 @@ Valid formats are %s.
         exception is raised."""
 
         if kind not in base.extension_kinds:
-            raise qm.cmdline.CommandError, \
-                  qm.error("invalid extension kind",
-                           kind = kind)
+            raise qm.cmdline.CommandError(qm.error("invalid extension kind",
+                           kind = kind))
 
                        
     def __CreateResultStreams(self, output_file, annotations, expectations):
@@ -1904,11 +1893,10 @@ Valid formats are %s.
         if format and format not in self.summary_formats:
             # Invalid format.  Complain.
             valid_format_string = string.join(
-                map(lambda f: '"%s"' % f, self.summary_formats), ", ")
-            raise qm.cmdline.CommandError, \
-                  qm.error("invalid results format",
+                ['"%s"' % f for f in self.summary_formats], ", ")
+            raise qm.cmdline.CommandError(qm.error("invalid results format",
                            format=format,
-                           valid_formats=valid_format_string)
+                           valid_formats=valid_format_string))
         if format != "none":
             args = { "format" : format }
             args.update(arguments)
@@ -1931,7 +1919,7 @@ Valid formats are %s.
                   ({ "filename" : output_file}))
             result_streams.append(rs)
 
-        for name, value in annotations.iteritems():
+        for name, value in annotations.items():
             for rs in result_streams:
                 rs.WriteAnnotation(name, value)
 

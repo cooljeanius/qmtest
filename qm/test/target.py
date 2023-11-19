@@ -225,7 +225,7 @@ class Target(qm.extension.Extension):
             # Run the test.
             try:
                 descriptor.Run(context, result)
-            except qm.common.Timeout, t:
+            except qm.common.Timeout as t:
                 result.SetOutcome(result.FAIL, 'Process timed out.')
                 result[Result.TIMEOUT_DETAIL] = str(t)
             finally:
@@ -238,7 +238,7 @@ class Target(qm.extension.Extension):
             # engine to stop.
             if self.__engine:
                 self.__engine.RequestTermination()
-        except qm.platform.SignalException, e:
+        except qm.platform.SignalException as e:
             # Note the exception.
             result.NoteException(cause = str(e))
             # If we get a SIGTERM, propagate it so that QMTest
@@ -252,7 +252,7 @@ class Target(qm.extension.Extension):
                     self.__engine.RequestTermination()
                 # Re-raise the exception.
                 raise
-        except self.__ResourceSetUpException, e:
+        except self.__ResourceSetUpException as e:
             result.SetOutcome(Result.UNTESTED)
             result[Result.CAUSE] = qm.message("failed resource")
             result[Result.RESOURCE] = e.resource
@@ -353,7 +353,7 @@ class Target(qm.extension.Extension):
             # If the resource was not set up successfully,
             # indicate that the test itself could not be run.
             if outcome != Result.PASS:
-                raise self.__ResourceSetUpException, resource
+                raise self.__ResourceSetUpException(resource)
             # Update the list of additional context properties.
             context.update(resource_properties)
 
@@ -395,14 +395,14 @@ class Target(qm.extension.Extension):
             # Obtain the resource within the try-block so that if it
             # cannot be obtained the exception is handled below.
             resource = resource_desc.GetItem()
-        except self.__ResourceSetUpException, e:
+        except self.__ResourceSetUpException as e:
             result.Fail(qm.message("failed resource"),
                         { result.RESOURCE : e.resource })
         except NoSuchResourceError:
             result.NoteException(cause="Resource is missing from the database.")
             self._RecordResult(result)
             return (None, result, None)
-        except qm.test.base.CouldNotLoadExtensionError, e:
+        except qm.test.base.CouldNotLoadExtensionError as e:
             result.NoteException(e.exc_info,
                                  cause = "Could not load extension class")
         except KeyboardInterrupt:

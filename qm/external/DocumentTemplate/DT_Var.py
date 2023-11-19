@@ -148,9 +148,9 @@ Evaluating expressions without rendering results
 __rcs_id__='$Id$'
 __version__='$Revision$'[11:-2]
 
-from DT_Util import parse_params, name_param, html_quote, str
+from .DT_Util import parse_params, name_param, html_quote, str
 import string, re, sys
-from urllib import quote, quote_plus
+from urllib.parse import quote, quote_plus
 
 class Var:
     name='var'
@@ -167,10 +167,9 @@ class Var:
         self.args=args
 
         self.modifiers=tuple(
-            map(lambda t: t[1],
-                filter(lambda m, args=args, used=args.has_key:
+            [t[1] for t in list(filter(lambda m, args=args, used=args.has_key:
                        used(m[0]) and args[m[0]],
-                       modifiers)))
+                       modifiers))])
 
         name, expr = name_param(args,'var',1)
 
@@ -190,7 +189,7 @@ class Var:
         val=self.expr
 
         if val is None:
-            if md.has_key(name):
+            if name in md:
                 if have_arg('url'):
                     val=md.getitem(name,0)
                     val=val.absolute_url()
@@ -200,7 +199,7 @@ class Var:
                 if have_arg('missing'):
                     return args['missing']
                 else:
-                    raise KeyError, name
+                    raise KeyError(name)
         else:
             val=val.eval(md)
             if have_arg('url'): val=val.absolute_url()
@@ -219,22 +218,22 @@ class Var:
                 try:
                     if hasattr(val, fmt):
                         val = getattr(val,fmt)()
-                    elif special_formats.has_key(fmt):
+                    elif fmt in special_formats:
                         val = special_formats[fmt](val, name, md)
                     elif fmt=='': val=''
                     else: val = fmt % val
                 except:
-                    t, v= sys.exc_type, sys.exc_value
+                    t, v= sys.exc_info()[0], sys.exc_info()[1]
                     if hasattr(sys, 'exc_info'): t, v = sys.exc_info()[:2]
                     if val is None or not str(val): return args['null']
-                    raise t, v
+                    raise t(v)
 
             else:
                 # We duplicate the code here to avoid exception handler
                 # which tends to screw up stack or leak
                 if hasattr(val, fmt):
                     val = getattr(val,fmt)()
-                elif special_formats.has_key(fmt):
+                elif fmt in special_formats:
                     val = special_formats[fmt](val, name, md)
                 elif fmt=='': val=''
                 else: val = fmt % val
@@ -379,7 +378,7 @@ modifiers=(html_quote, url_quote, url_quote_plus, url_unquote,
            url_unquote_plus, newline_to_br,
            string.lower, string.upper, string.capitalize, spacify,
            thousands_commas, sql_quote, url_unquote, url_unquote_plus)
-modifiers=map(lambda f: (f.__name__, f), modifiers)
+modifiers=[(f.__name__, f) for f in modifiers]
 
 class Comment:
     '''Comments

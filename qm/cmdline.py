@@ -34,7 +34,7 @@ import copy
 import getopt
 import qm
 import string
-import structured_text
+from . import structured_text
 import sys
 
 ########################################################################
@@ -101,10 +101,10 @@ class CommandParser:
         for option in self.__options:
             if option[0]:
                 # Check for duplicate short options.
-                assert not self.__option_to_long.has_key('-' + option[0])
+                assert '-' + option[0] not in self.__option_to_long
                 self.__option_to_long['-' + option[0]] = option[1]
             # Check for duplicate long options.
-            assert not self.__option_to_long.has_key('--' + option[1])
+            assert '--' + option[1] not in self.__option_to_long
             self.__option_to_long['--' + option[1]] = option[1]
         
         # Check that the options for each command are ok.
@@ -118,15 +118,13 @@ class CommandParser:
             for option in command[4]:
                 if option[0] is not None:
                     # Check for duplicate short options.
-                    if map.has_key('-' + option[0]):
-                        raise ValueError, \
-                              "duplicate short command option -%s" \
-                              % option[0]
+                    if '-' + option[0] in map:
+                        raise ValueError("duplicate short command option -%s" \
+                              % option[0])
                     map['-' + option[0]] = option[1]
                 # Check for duplicate long options.
-                if map.has_key('--' + option[1]):
-                    raise ValueError, \
-                          "duplicate long command option --%s" % option[1]
+                if '--' + option[1] in map:
+                    raise ValueError("duplicate long command option --%s" % option[1])
                 map['--' + option[1]] = option[1]
             command = command + (map,)
             self.__commands[i] = command
@@ -152,8 +150,7 @@ class CommandParser:
                             break
                 if not found:
                     # This option spec wasn't found anywhere.
-                    raise ValueError, \
-                          "unknown option --%s in conflict set", option[1]
+                    raise ValueError("unknown option --%s in conflict set").with_traceback(option[1])
         # Store for later.
         self.__conflicting_options = conflicting_options
 
@@ -168,11 +165,10 @@ class CommandParser:
         for short_option, long_option, options, descripton in options:
             # The short form of the option must have exactly 1 character.
             if short_option != None and len(short_option) != 1:
-                raise ValueError, "short option must have exactly 1 character"
+                raise ValueError("short option must have exactly 1 character")
             # The long form of the option must be specified.
             if long_option == None or len(long_option) == 0:
-                raise ValueError, \
-                      "long option must be specified for -%s" % short_option
+                raise ValueError("long option must be specified for -%s" % short_option)
         
         return 1
 
@@ -320,8 +316,8 @@ class CommandParser:
         try:
             options, args = getopt.getopt(argv, self.__getopt_options,
                                         getopt_list)
-        except getopt.error, msg:
-            raise CommandError, msg
+        except getopt.error as msg:
+            raise CommandError(msg)
         
         for i in range(0, len(options)):
             option = options[i]
@@ -346,8 +342,7 @@ class CommandParser:
         if found == 0:
             # The command they specified does not exist; print out the
             # help and raise an exception.
-            raise CommandError, \
-                  qm.error("unrecognized command", command=command)
+            raise CommandError(qm.error("unrecognized command", command=command))
             
         # Get the arguments to the command.
         command_options = []
@@ -362,8 +357,8 @@ class CommandParser:
             command_options, command_args = getopt.getopt(args[1:],
                                                           getopt_string,
                                                           getopt_list)
-        except getopt.error, msg:
-            raise CommandError, "%s: %s" % (command, msg)
+        except getopt.error as msg:
+            raise CommandError("%s: %s" % (command, msg))
 
         for i in range(0, len(command_options)):
             option = command_options[i]
@@ -373,24 +368,22 @@ class CommandParser:
         # Check for mutually exclusive options.  First generate a set of
         # all the options that were specified, both global options and
         # command options.
-        all_options = map(lambda option: option[0],
-                          options + command_options)
+        all_options = [option[0] for option in options + command_options]
         # Loop over sets of conflicting options.
         for conflict_set in self.__conflicting_options:
             # Generate sequence of names of the conflicting options.
-            conflict_names = map(lambda opt_spec: opt_spec[1], conflict_set)
+            conflict_names = [opt_spec[1] for opt_spec in conflict_set]
             # Filter out options that were specified that aren't in the
             # set of conflicting options.
             conflict_filter = lambda option, conflict_names=conflict_names: \
                               option in conflict_names and option
-            matches = filter(conflict_filter, all_options)
+            matches = list(filter(conflict_filter, all_options))
             # Was more than one option from the conflicting set specified?
             if len(matches) > 1:
                 # Yes; that's a user error.
-                raise qm.cmdline.CommandError, \
-                      qm.error("conflicting options",
+                raise qm.cmdline.CommandError(qm.error("conflicting options",
                                option1=matches[0],
-                               option2=matches[1])
+                               option2=matches[1]))
 
         return (options, command, command_options, command_args)
 

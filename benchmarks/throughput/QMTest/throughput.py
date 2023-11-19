@@ -51,7 +51,7 @@ class ThroughputDatabase(Database):
                                                           scan_subdirs)
 
         tests = []
-        for x in xrange(self.num_tests):
+        for x in range(self.num_tests):
             tests.append("test%d" % x)
 
         return tests
@@ -60,7 +60,7 @@ class ThroughputDatabase(Database):
     def GetTest(self, test_id):
 
         prereqs = []
-        for x in xrange(random.randrange(5)):
+        for x in range(random.randrange(5)):
             test = "test%d" % random.randrange(self.num_tests)
             outcome = random.choice(Result.outcomes)
             prereqs.append((test, outcome))

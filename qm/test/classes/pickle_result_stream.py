@@ -16,7 +16,7 @@
 ########################################################################
 
 import types
-import cPickle
+import pickle
 import struct
 import qm.fields
 from   qm.test.file_result_stream import FileResultStream
@@ -136,7 +136,7 @@ class PickleResultStream(FileResultStream):
 
     def _ResetPickler(self):
 
-        self.__pickler = cPickle.Pickler(self.file, self.protocol_version)
+        self.__pickler = pickle.Pickler(self.file, self.protocol_version)
 
 
     def _WriteAnnotationPtr(self):
@@ -153,8 +153,8 @@ class PickleResultStream(FileResultStream):
 
     def WriteAnnotation(self, key, value):
 
-        assert isinstance(key, types.StringTypes)
-        assert isinstance(value, types.StringTypes)
+        assert isinstance(key, (str,))
+        assert isinstance(value, (str,))
         self.__pickler.dump(_annotation_sentinel)
         self._WriteAnnotationPtr()
         self.__pickler.dump(("annotation", key, value))
@@ -186,9 +186,8 @@ class PickleResultReader(FileResultReader):
         # Check for a version number
         try:
             version = self.__unpickler.load()
-        except (EOFError, cPickle.UnpicklingError):
-            raise FileResultReader.InvalidFile, \
-                  "file is not a pickled result stream"
+        except (EOFError, pickle.UnpicklingError):
+            raise FileResultReader.InvalidFile("file is not a pickled result stream")
         
         if not isinstance(version, int):
             # Version 0 file, no version number; in fact, we're
@@ -199,12 +198,12 @@ class PickleResultReader(FileResultReader):
         elif version == 1:
             self._ReadMetadata()
         else:
-            raise QMException, "Unknown format version %i" % (version,)
+            raise QMException("Unknown format version %i" % (version,))
 
 
     def _ResetUnpickler(self):
 
-        self.__unpickler = cPickle.Unpickler(self.file)
+        self.__unpickler = pickle.Unpickler(self.file)
 
 
     def _ReadAddress(self):
@@ -235,7 +234,7 @@ class PickleResultReader(FileResultReader):
                 (key, value) = annotation_tuple[1:]
                 self._annotations[key] = value
             else:
-                print "Unknown annotation type '%s'; ignoring" % (kind,)
+                print("Unknown annotation type '%s'; ignoring" % (kind,))
             # Now loop back and jump to the next address.
 
         # Finally, rewind back to the beginning for the reading of
@@ -254,7 +253,7 @@ class PickleResultReader(FileResultReader):
         while 1:
             try:
                 thing = self.__unpickler.load()
-            except (EOFError, cPickle.UnpicklingError):
+            except (EOFError, pickle.UnpicklingError):
                 # When reading from a StringIO, no EOFError will be
                 # raised when the unpickler tries to read from the file.
                 # Instead, the unpickler raises UnpicklingError when it

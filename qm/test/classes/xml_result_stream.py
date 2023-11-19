@@ -91,8 +91,7 @@ class XMLResultReader(FileResultReader):
         # Make sure that this file really is an XML result stream.
         tag = self.file.read(5)
         if tag != "<?xml":
-            raise FileResultReader.InvalidFile, \
-                  "file is not an XML result stream"
+            raise FileResultReader.InvalidFile("file is not an XML result stream")
         self.file.seek(0)
 
         document = qm.xmlutil.load_xml(self.file)
@@ -117,7 +116,7 @@ class XMLResultReader(FileResultReader):
     def GetResult(self):
 
         try:
-            return self._GetResultFromDomNode(self.__node_iterator.next())
+            return self._GetResultFromDomNode(next(self.__node_iterator))
         except StopIteration:
             return None
 

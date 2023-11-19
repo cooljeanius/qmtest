@@ -18,7 +18,7 @@
 import os.path
 import qm
 from qm.fields import Field
-import StringIO
+import io
 import tokenize
 import xml
 
@@ -26,7 +26,7 @@ import xml
 # Classes
 ########################################################################
 
-class Extension(object):
+class Extension(object, metaclass=Type):
     """A class derived from 'Extension' is a QM extension.
 
     A variety of different classes are derived from 'Extension'.  All
@@ -58,7 +58,7 @@ class Extension(object):
             for c in hierarchy:
                 parameters.update(c._argument_dictionary)
             # Now set parameters from class variables of type 'Field'.
-            for key, field in dict.iteritems():
+            for key, field in dict.items():
                 if isinstance(field, Field):
                     field.SetName(key)
                     parameters[key] = field
@@ -74,23 +74,21 @@ class Extension(object):
                     # class variables if _allow_arg_names_matching_class_vars
                     # evaluates to True.
                     if (hasattr(cls, field.GetName())
-                        and not cls._argument_dictionary.has_key(field.GetName())
+                        and field.GetName() not in cls._argument_dictionary
                         and not cls._allow_arg_names_matching_class_vars):
-                        raise qm.common.QMException, \
-                              qm.error("ext arg name matches class var",
+                        raise qm.common.QMException(qm.error("ext arg name matches class var",
                                        class_name = name,
-                                       argument_name = field.GetName())
+                                       argument_name = field.GetName()))
                     parameters[field.GetName()] = field
 
             setattr(cls, '_argument_dictionary', parameters)
-            setattr(cls, '_argument_list', parameters.values())
+            setattr(cls, '_argument_list', list(parameters.values()))
 
             # Finally set default values.
             for i in parameters:
                 setattr(cls, i, parameters[i].GetDefaultValue())
 
-    __metaclass__ = Type
-
+    
     arguments = []
     """A list of the arguments to the extension class.
 
@@ -155,9 +153,9 @@ class Extension(object):
         # 'Field's for this class.
         if __debug__:
             dictionary = get_class_arguments_as_dictionary(self.__class__)
-            for a, v in args.items():
-                if not dictionary.has_key(a):
-                    raise AttributeError, a
+            for a, v in list(args.items()):
+                if a not in dictionary:
+                    raise AttributeError(a)
         
         # Remember the arguments provided.
         self.__dict__.update(args)
@@ -167,7 +165,7 @@ class Extension(object):
         # Perhaps a default value for a class argument should be used.
         field = get_class_arguments_as_dictionary(self.__class__).get(name)
         if field is None:
-            raise AttributeError, name
+            raise AttributeError(name)
         return field.GetDefaultValue()
 
 
@@ -191,11 +189,11 @@ class Extension(object):
         # Determine which subset of the 'arguments' have been set
         # explicitly.
         explicit_arguments = {}
-        for name, field in arguments.items():
+        for name, field in list(arguments.items()):
             # Do not record computed fields.
             if field.IsComputed():
                 continue
-            if self.__dict__.has_key(name):
+            if name in self.__dict__:
                 explicit_arguments[name] = self.__dict__[name]
 
         return explicit_arguments
@@ -336,20 +334,18 @@ def validate_arguments(extension_class, arguments):
     # Check that there are no arguments that do not apply to this
     # class.
     class_arguments = get_class_arguments_as_dictionary(extension_class)
-    for name, value in arguments.items():
+    for name, value in list(arguments.items()):
         field = class_arguments.get(name)
         if not field:
-            raise qm.QMException, \
-                  qm.error("unexpected extension argument",
+            raise qm.QMException(qm.error("unexpected extension argument",
                            name = name,
                            class_name \
-                               = get_extension_class_name(extension_class))
+                               = get_extension_class_name(extension_class)))
         if field.IsComputed():
-            raise qm.QMException, \
-                  qm.error("value provided for computed field",
+            raise qm.QMException(qm.error("value provided for computed field",
                            name = name,
                            class_name \
-                               = get_extension_class_name(extension_class))
+                               = get_extension_class_name(extension_class)))
         converted_arguments[name] = field.ParseTextValue(value)
 
     return converted_arguments
@@ -388,7 +384,7 @@ def make_dom_element(extension_class, arguments, document, element = None):
     extension_element.setAttribute("class",
                                    get_extension_class_name(extension_class))
     # Create an element for each of the arguments.
-    for argument_name, value in arguments.items():
+    for argument_name, value in list(arguments.items()):
         # Skip computed arguments.
         field = field_dictionary[argument_name]
         if field.IsComputed():
@@ -483,8 +479,7 @@ def parse_dom_element(element, class_loader, attachment_store = None):
         field = field_dictionary[name]
         # Get the DOM node for the value.  It is always a element.
         value_node \
-            = filter(lambda e: e.nodeType == xml.dom.Node.ELEMENT_NODE,
-                     argument_element.childNodes)[0]
+            = [e for e in argument_element.childNodes if e.nodeType == xml.dom.Node.ELEMENT_NODE][0]
         # Parse the value.
         value = field.GetValueFromDomNode(value_node, attachment_store)
         # Python does not allow keyword arguments to have Unicode
@@ -575,44 +570,40 @@ def parse_descriptor(descriptor, class_loader, extension_loader = None):
     if open_paren != -1:
         # Create a file-like object for the remainder of the string.
         arguments_string = descriptor[open_paren:]
-        s = StringIO.StringIO(arguments_string)
+        s = io.StringIO(arguments_string)
         # Use the Python tokenizer to process the remainder of the
         # string.
         g = tokenize.generate_tokens(s.readline)
         # Read the opening parenthesis.
-        tok = g.next()
+        tok = next(g)
         assert tok[0] == tokenize.OP and tok[1] == "("
         need_comma = 0
         # Keep going until we find the closing parenthesis.
         while 1:
-            tok = g.next()
+            tok = next(g)
             if tok[0] == tokenize.OP and tok[1] == ")":
                 break
             # All arguments but the first must be separated by commas.
             if need_comma:
                 if tok[0] != tokenize.OP or tok[1] != ",":
-                    raise qm.QMException, \
-                          qm.error("invalid descriptor syntax",
-                                   start = arguments_string[tok[2][1]:])
-                tok = g.next()
+                    raise qm.QMException(qm.error("invalid descriptor syntax",
+                                   start = arguments_string[tok[2][1]:]))
+                tok = next(g)
             # Read the argument name.
             if tok[0] != tokenize.NAME:
-                raise qm.QMException, \
-                      qm.error("invalid descriptor syntax",
-                               start = arguments_string[tok[2][1]:])
+                raise qm.QMException(qm.error("invalid descriptor syntax",
+                               start = arguments_string[tok[2][1]:]))
             name = tok[1]
             # Read the '='.
-            tok = g.next()
+            tok = next(g)
             if tok[0] != tokenize.OP or tok[1] != "=":
-                raise qm.QMException, \
-                      qm.error("invalid descriptor syntax",
-                               start = arguments_string[tok[2][1]:])
+                raise qm.QMException(qm.error("invalid descriptor syntax",
+                               start = arguments_string[tok[2][1]:]))
             # Read the value.
-            tok = g.next()
+            tok = next(g)
             if tok[0] != tokenize.STRING:
-                raise qm.QMException, \
-                      qm.error("invalid descriptor syntax",
-                               start = arguments_string[tok[2][1]:])
+                raise qm.QMException(qm.error("invalid descriptor syntax",
+                               start = arguments_string[tok[2][1]:]))
             # The token string will have surrounding quotes.  By
             # running it through "eval", we get at the underlying
             # value.
@@ -621,11 +612,10 @@ def parse_descriptor(descriptor, class_loader, extension_loader = None):
             # The next argument must be preceded by a comma.
             need_comma = 1
         # There shouldn't be anything left at this point.
-        tok = g.next()
+        tok = next(g)
         if not tokenize.ISEOF(tok[0]):
-            raise qm.QMException, \
-                  qm.error("invalid descriptor syntax",
-                           start = arguments_string[tok[2][1]:])
+            raise qm.QMException(qm.error("invalid descriptor syntax",
+                           start = arguments_string[tok[2][1]:]))
     
     # Process the arguments.
     arguments = validate_arguments(extension_class, arguments)

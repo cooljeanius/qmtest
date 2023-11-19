@@ -45,8 +45,8 @@ Access the database object via this interface:
 ########################################################################
 
 import qm
-import label
-import xmlutil
+from . import label
+from . import xmlutil
 
 ########################################################################
 # constants
@@ -288,7 +288,7 @@ class DefaultDatabase:
         if user_id == default_user_id:
             return self.default_user
         else:
-            raise KeyError, user_id
+            raise KeyError(user_id)
 
 
     def get(self, user_id, default=None):
@@ -304,7 +304,7 @@ class DefaultDatabase:
 
 
     def GetGroup(self, group_id):
-        raise KeyError, "no such group"
+        raise KeyError("no such group")
 
 
 
@@ -348,7 +348,7 @@ class XmlDatabase:
             if user.GetRole() == "default":
                 if self.__default_user_id is not None:
                     # More than one default user was specified.
-                    raise XmlDatabaseError, "multiple default users"
+                    raise XmlDatabaseError("multiple default users")
                 self.__default_user_id = user.GetId()
 
         # Load groups.
@@ -357,10 +357,9 @@ class XmlDatabase:
             # Make sure all the user IDs listed for this group are IDs
             # we know. 
             for user_id in group:
-                if not self.__users.has_key(user_id):
-                    raise XmlDatabaseError, \
-                          'user "%s" in group "%s" is unknown' \
-                          % (user_id, group.GetId())
+                if user_id not in self.__users:
+                    raise XmlDatabaseError('user "%s" in group "%s" is unknown' \
+                          % (user_id, group.GetId()))
             # Store the group.
             self.__groups[group.GetId()] = group
             
@@ -375,7 +374,7 @@ class XmlDatabase:
     def GetGroupIds(self):
         """Return the IDs of user groups."""
 
-        return self.__groups.keys()
+        return list(self.__groups.keys())
 
 
     def GetGroup(self, group_id):
@@ -394,11 +393,11 @@ class XmlDatabase:
             )
         document_element = document.documentElement
         # Create elements for users in the database.
-        for user in self.__users.values():
+        for user in list(self.__users.values()):
             user_element = create_dom_for_user(document, user)
             document_element.appendChild(user_element)
         # Create elements for user groups.
-        for group in self.__groups.values():
+        for group in list(self.__groups.values()):
             group_element = create_dom_for_group(document, group)
             document_element.appendChild(group_element)
         # Write out the database.
@@ -416,7 +415,7 @@ class XmlDatabase:
 
 
     def keys(self):
-        return self.__users.keys()
+        return list(self.__users.keys())
 
 
 
@@ -460,11 +459,11 @@ class XmlDatabaseAuthenticator(Authenticator):
            or expected_password != password:
             # No password specified for this user, or the provided
             # password doesn't match.
-            raise AuthenticationError, "invalid user name/password"
+            raise AuthenticationError("invalid user name/password")
         # Is the account enabled?
         if not user.IsEnabled():
             # No.  Prevent authentication.
-            raise AccountDisabledError, user_name
+            raise AccountDisabledError(user_name)
         return user_name
 
 
@@ -588,7 +587,7 @@ def _create_dom_properties(element, properties):
     'properties' -- A map from property names to values."""
 
     document = element.ownerDocument
-    for name, value in properties.items():
+    for name, value in list(properties.items()):
         prop_element = xmlutil.create_dom_text_element(
             document, "property", str(value))
         prop_element.setAttribute("name", name)

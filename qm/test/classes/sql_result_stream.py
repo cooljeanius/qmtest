@@ -99,7 +99,7 @@ class SQLResultStream(ResultStream, _SQLConnected):
                    quote_string(result.GetKind()),
                    quote_string(result.GetOutcome())))
 
-        for key, value in result.items():
+        for key, value in list(result.items()):
             self.connection.execute("""
                 INSERT INTO result_annotations (run_id,
                                                 result_id,
@@ -141,7 +141,7 @@ class _Buffer:
         self.last = None
 
 
-    def next(self):
+    def __next__(self):
         """Returns the next item, refilling the buffer if necessary."""
 
         idx = self.idx
@@ -239,7 +239,7 @@ class SQLResultReader(ResultReader, _SQLConnected):
     def GetResult(self):
 
         try:
-            id, kind, outcome = self._r_buffer.next()
+            id, kind, outcome = next(self._r_buffer)
         except StopIteration:
             return None
         annotations = {}

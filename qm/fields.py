@@ -40,24 +40,24 @@ of test names."""
 # imports
 ########################################################################
 
-import attachment
-import common
+from . import attachment
+from . import common
 import formatter
 import htmllib
 import os
 import re
 import qm
 import string
-import StringIO
-import structured_text
+import io
+from . import structured_text
 import sys
 import time
 import tokenize
 import types
-import urllib
-import web
+import urllib.request, urllib.parse, urllib.error
+from . import web
 import xml.dom
-import xmlutil
+from . import xmlutil
 
 ########################################################################
 # classes
@@ -247,9 +247,9 @@ class Field(object):
         returns -- A plain-text string representing 'value'."""
 
         # Create a file to hold the result.
-        text_file = StringIO.StringIO()
+        text_file = io.StringIO()
         # Format the field as HTML.
-        html_file = StringIO.StringIO(self.FormatValueAsHtml(None,
+        html_file = io.StringIO(self.FormatValueAsHtml(None,
                                                              value,
                                                              "brief"))
 
@@ -455,8 +455,8 @@ class IntegerField(Field):
 
     def Validate(self, value):
 
-        if not isinstance(value, (int, long)):
-            raise ValueError, value
+        if not isinstance(value, int):
+            raise ValueError(value)
 
         return value
 
@@ -466,8 +466,7 @@ class IntegerField(Field):
         try:
             return self.Validate(int(value))
         except:
-            raise qm.common.QMException, \
-                  qm.error("invalid integer field value")
+            raise qm.common.QMException(qm.error("invalid integer field value"))
 
 
     def GetValueFromDomNode(self, node, attachment_store):
@@ -475,11 +474,10 @@ class IntegerField(Field):
         # Make sure 'node' is an '<integer>' element.
         if node.nodeType != xml.dom.Node.ELEMENT_NODE \
            or node.tagName != "integer":
-            raise qm.QMException, \
-                  qm.error("dom wrong tag for field",
+            raise qm.QMException(qm.error("dom wrong tag for field",
                            name=self.GetName(),
                            right_tag="integer",
-                           wrong_tag=node.tagName)
+                           wrong_tag=node.tagName))
         # Retrieve the contained text.
         value = xmlutil.get_dom_text(node)
         # Convert it to an integer.
@@ -646,7 +644,7 @@ class TextField(Field):
                     return web.escape(value)
 
         else:
-            raise ValueError, style
+            raise ValueError(style)
 
 
     def MakeDomNodeForValue(self, value, document):
@@ -657,8 +655,8 @@ class TextField(Field):
 
     def Validate(self, value):
 
-        if not isinstance(value, types.StringTypes):
-            raise ValueError, value
+        if not isinstance(value, (str,)):
+            raise ValueError(value)
         
         # Clean up unless it's a verbatim string.
         if not self.__verbatim:
@@ -667,9 +665,8 @@ class TextField(Field):
         # If this field has the not_empty_text property set, make sure the
         # value complies.
         if self.__not_empty_text and value == "":
-            raise ValueError, \
-                  qm.error("empty text field value",
-                           field_title=self.GetTitle()) 
+            raise ValueError(qm.error("empty text field value",
+                           field_title=self.GetTitle())) 
         # If this is not a multi-line text field, remove line breaks
         # (and surrounding whitespace).
         if not self.__multiline:
@@ -695,11 +692,10 @@ class TextField(Field):
         # Make sure 'node' is a '<text>' element.
         if node.nodeType != xml.dom.Node.ELEMENT_NODE \
            or node.tagName != "text":
-            raise qm.QMException, \
-                  qm.error("dom wrong tag for field",
+            raise qm.QMException(qm.error("dom wrong tag for field",
                            name=self.GetName(),
                            right_tag="text",
-                           wrong_tag=node.tagName)
+                           wrong_tag=node.tagName))
         return self.Validate(xmlutil.get_dom_text(node))
 
 
@@ -725,7 +721,7 @@ class TupleField(Field):
         the 'fields'."""
 
         self.__fields = fields == None and [] or fields
-        default_value = map(lambda f: f.GetDefaultValue(), self.__fields)
+        default_value = [f.GetDefaultValue() for f in self.__fields]
         Field.__init__(self, name, default_value, **properties)
 
 
@@ -783,8 +779,8 @@ class TupleField(Field):
     def Validate(self, value):
 
         assert len(value) == len(self.__fields)
-        return map(lambda f, v: f.Validate(v),
-                   self.__fields, value)
+        return list(map(lambda f, v: f.Validate(v),
+                   self.__fields, value))
 
 
     def ParseFormValue(self, request, name, attachment_stores):
@@ -861,7 +857,7 @@ class DictionaryField(Field):
             body = ['<th>%s</th><td>%s</td>\n'
                     %(self.__key_field.FormatValueAsHtml(server, key, style),
                       self.__value_field.FormatValueAsHtml(server, value, style))
-                    for (key, value) in content.iteritems()]
+                    for (key, value) in content.items()]
             return '<table><tr>%s</tr>\n</table>\n'%'</tr>\n<tr>'.join(body)
 
         elif style in ['new', 'edit', 'hidden']:
@@ -872,7 +868,7 @@ class DictionaryField(Field):
                 html += ('<table border="0" cellpadding="0" cellspacing="0">'
                          '\n <tbody>\n')
                 element_number = 0
-                for key, value in content.iteritems():
+                for key, value in content.items():
                     html += '  <tr>\n   <td>'
                     element_name = name + '_%d' % element_number
                     checkbox_name = element_name + "_remove"
@@ -923,7 +919,7 @@ class DictionaryField(Field):
     def MakeDomNodeForValue(self, value, document):
 
         element = document.createElement('dictionary')
-        for k, v in value.iteritems():
+        for k, v in value.items():
             item = element.appendChild(document.createElement('item'))
             item.appendChild(self.__key_field.MakeDomNodeForValue(k, document))
             item.appendChild(self.__value_field.MakeDomNodeForValue(v, document))
@@ -935,7 +931,7 @@ class DictionaryField(Field):
     def Validate(self, value):
 
         valid = {}
-        for k, v in value.items():
+        for k, v in list(value.items()):
             valid[self.__key_field.Validate(k)] = self.__value_field.Validate(v)
 
         return valid
@@ -953,7 +949,7 @@ class DictionaryField(Field):
 
         action = request[name]
 
-        for i in xrange(int(request[name + '_count'])):
+        for i in range(int(request[name + '_count'])):
             if not (action == 'remove'
                     and request.get(name + '_%d_remove'%i) == 'on'):
                 key, rk = self.__key_field.ParseFormValue(request,
@@ -969,7 +965,7 @@ class DictionaryField(Field):
         # Remove entries from the request that might cause confusion
         # when the page is redisplayed.
         names = []
-        for n, v in request.items():
+        for n, v in list(request.items()):
             if n[:len(name)] == name:
                 names.append(n)
         for n in names:
@@ -1029,7 +1025,7 @@ class SetField(Field):
 
         raises -- 'TypeError' if 'contained' is not a 'Field'."""
 
-        if not properties.has_key('description'):
+        if 'description' not in properties:
             properties['description'] = contained.GetDescription()
 
         super(SetField, self).__init__(
@@ -1040,10 +1036,9 @@ class SetField(Field):
 
         # A set field may not contain a set field.
         if isinstance(contained, SetField):
-            raise ValueError, \
-                  "A set field may not contain a set field."
+            raise ValueError("A set field may not contain a set field.")
         if not isinstance(contained, Field):
-            raise TypeError, "A set must contain another field."
+            raise TypeError("A set must contain another field.")
         # Remeber the contained field type.
         self.__contained = contained
         self.__not_empty_set = not_empty_set == "true"
@@ -1110,9 +1105,8 @@ class SetField(Field):
                 # An empty set.
                 return "None"
             formatted \
-                = map(lambda v: contained_field.FormatValueAsHtml(server,
-                                                                  v, style),
-                      value)
+                = [contained_field.FormatValueAsHtml(server,
+                                                                  v, style) for v in value]
             if style == "brief":
                 # In the brief style, list elements separated by commas.
                 separator = ", "
@@ -1192,13 +1186,11 @@ class SetField(Field):
         # If this field has the not_empty_set property set, make sure
         # the value complies.
         if self.__not_empty_set and len(value) == 0:
-            raise ValueError, \
-                  qm.error("empty set field value",
-                           field_title=self.GetTitle()) 
+            raise ValueError(qm.error("empty set field value",
+                           field_title=self.GetTitle())) 
         # Assume 'value' is a sequence.  Copy it, simultaneously
         # validating each element in the contained field.
-        return map(lambda v: self.__contained.Validate(v),
-                   value)
+        return [self.__contained.Validate(v) for v in value]
 
 
     def ParseTextValue(self, value):
@@ -1211,15 +1203,14 @@ class SetField(Field):
             This function does not return; instead, it raises an
             appropriate exception."""
 
-            raise qm.QMException, \
-                  qm.error("invalid set value", start = value[tok[2][1]:])
+            raise qm.QMException(qm.error("invalid set value", start = value[tok[2][1]:]))
             
         # Use the Python parser to handle the elements of the set.
-        s = StringIO.StringIO(value)
+        s = io.StringIO(value)
         g = tokenize.generate_tokens(s.readline)
         
         # Read the opening square bracket.
-        tok = g.next()
+        tok = next(g)
         if tok[0] != tokenize.OP or tok[1] != "[":
             invalid(tok)
 
@@ -1230,7 +1221,7 @@ class SetField(Field):
         while 1:
             # If we've reached the closing bracket, the set is
             # complete.
-            tok = g.next()
+            tok = next(g)
             if tok[0] == tokenize.OP and tok[1] == "]":
                 break
             # If this is not the first element of the set, there should
@@ -1238,7 +1229,7 @@ class SetField(Field):
             if elements:
                 if tok[0] != tokenize.OP or tok[1] != ",":
                     invalid(tok)
-                tok = g.next()
+                tok = next(g)
             # The next token should be a string constant.
             if tok[0] != tokenize.STRING:
                 invalid(tok)
@@ -1247,7 +1238,7 @@ class SetField(Field):
             elements.append(self.__contained.ParseTextValue(v))
 
         # There should not be any tokens left over.
-        tok = g.next()
+        tok = next(g)
         if not tokenize.ISEOF(tok[0]):
             invalid(tok)
 
@@ -1265,7 +1256,7 @@ class SetField(Field):
         # the set.
         contained_field = self.__contained
         element = 0
-        for element in xrange(int(request[name + "_count"])):
+        for element in range(int(request[name + "_count"])):
             element_name = name + "_%d" % element
             if not (action == "remove"
                     and request.get(element_name + "_remove") == "on"):
@@ -1280,7 +1271,7 @@ class SetField(Field):
         # Remove entries from the request that might cause confusion
         # when the page is redisplayed.
         names = []
-        for n, v in request.items():
+        for n, v in list(request.items()):
             if n[:len(name)] == name:
                 names.append(n)
         for n in names:
@@ -1309,19 +1300,17 @@ class SetField(Field):
         # Make sure 'node' is a '<set>' element.
         if node.nodeType != xml.dom.Node.ELEMENT_NODE \
            or node.tagName != "set":
-            raise qm.QMException, \
-                  qm.error("dom wrong tag for field",
+            raise qm.QMException(qm.error("dom wrong tag for field",
                            name=self.GetName(),
                            right_tag="set",
-                           wrong_tag=node.tagName)
+                           wrong_tag=node.tagName))
         # Use the contained field to extract values for the children of
         # this node, which are the set elements.
         contained_field = self.__contained
         fn = lambda n, f=contained_field, s=attachment_store: \
              f.GetValueFromDomNode(n, s)
-        values = map(fn,
-                     filter(lambda n: n.nodeType == xml.dom.Node.ELEMENT_NODE,
-                            node.childNodes))
+        values = list(map(fn,
+                     [n for n in node.childNodes if n.nodeType == xml.dom.Node.ELEMENT_NODE]))
         return self.Validate(values)
 
 
@@ -1408,7 +1397,7 @@ class AttachmentField(Field):
         Sets the default value of the field to 'None'."""
 
         # Perform base class initialization. 
-        apply(Field.__init__, (self, name, None), properties)
+        Field.__init__(*(self, name, None), **properties)
 
 
     def GetHelp(self):
@@ -1464,7 +1453,7 @@ class AttachmentField(Field):
             description = value.GetDescription()
             file_name = value.GetFileName()
         else:
-            raise ValueError, "'value' must be 'None' or an 'Attachment'"
+            raise ValueError("'value' must be 'None' or an 'Attachment'")
 
         # Use the default field form field name if requested.
         if name is None:
@@ -1483,7 +1472,7 @@ class AttachmentField(Field):
             # slash character.  So, we add this bogus-looking argument
             # to fool the browser into using our file name.
             download_url = download_url + \
-                           "&=/" + urllib.quote_plus(file_name)
+                           "&=/" + urllib.parse.quote_plus(file_name)
             
             result = '<a href="%s">%s</a>' \
                      % (download_url, description)
@@ -1525,7 +1514,7 @@ class AttachmentField(Field):
                 parts = (description, mime_type, location, file_name,
                          str(id(value.GetStore())))
                 # Each part is URL-encoded.
-                parts = map(urllib.quote, parts)
+                parts = list(map(urllib.parse.quote, parts))
                 # The parts are joined into a semicolon-delimited list.
                 field_value = string.join(parts, ";")
             field_value = 'value="%s"' % field_value
@@ -1581,7 +1570,7 @@ class AttachmentField(Field):
             return result
 
         else:
-            raise ValueError, style
+            raise ValueError(style)
 
 
     def MakeDomNodeForValue(self, value, document):
@@ -1609,8 +1598,7 @@ class AttachmentField(Field):
 
         # The value should be an instance of 'Attachment', or 'None'.
         if value != None and not isinstance(value, attachment.Attachment):
-            raise ValueError, \
-                  "the value of an attachment field must be an 'Attachment'"
+            raise ValueError("the value of an attachment field must be an 'Attachment'")
         return value
 
 
@@ -1624,7 +1612,7 @@ class AttachmentField(Field):
         # relevant information about the attachment.
         parts = string.split(encoding, ";")
         # Undo the URL encoding of each component.
-        parts = map(urllib.unquote, parts)
+        parts = list(map(urllib.parse.unquote, parts))
         # Unpack the results.
         description, mime_type, location, file_name, store_id = parts
         # Figure out which AttachmentStore corresponds to the id
@@ -1642,11 +1630,10 @@ class AttachmentField(Field):
         # Make sure 'node' is an "attachment" element.
         if node.nodeType != xml.dom.Node.ELEMENT_NODE \
            or node.tagName != "attachment":
-            raise qm.QMException, \
-                  qm.error("dom wrong tag for field",
+            raise qm.QMException(qm.error("dom wrong tag for field",
                            name=self.GetName(),
                            right_tag="attachment",
-                           wrong_tag=node.tagName)
+                           wrong_tag=node.tagName))
         return self.Validate(attachment.from_dom_node(node, attachment_store))
 
 
@@ -1701,7 +1688,7 @@ class ChoiceField(TextField):
 
         value = super(ChoiceField, self).Validate(value)
         if value == "":
-            raise ValueError, "No choice specified for %s." % self.GetTitle()
+            raise ValueError("No choice specified for %s." % self.GetTitle())
         return value
 
         
@@ -1732,7 +1719,7 @@ class EnumerationField(ChoiceField):
         'None', the first enumeral is used."""
 
         # If we're handed an encoded list of enumerals, decode it.
-        if isinstance(enumerals, types.StringType):
+        if isinstance(enumerals, bytes):
             enumerals = string.split(enumerals, ",")
         # Make sure the default value is legitimate.
         if not default_value in enumerals and len(enumerals) > 0:
@@ -1784,11 +1771,10 @@ class EnumerationField(ChoiceField):
         # Make sure 'node' is an '<enumeral>' element.
         if node.nodeType != xml.dom.Node.ELEMENT_NODE \
            or node.tagName != "enumeral":
-            raise qm.QMException, \
-                  qm.error("dom wrong tag for field",
+            raise qm.QMException(qm.error("dom wrong tag for field",
                            name=self.GetName(),
                            right_tag="enumeral",
-                           wrong_tag=node.tagName)
+                           wrong_tag=node.tagName))
         # Extract the value.
         return self.Validate(xmlutil.get_dom_text(node))
 
@@ -1891,7 +1877,7 @@ class TimeField(IntegerField):
             return '<input type="hidden" name="%s" value="%s" />' \
                    % (name, value)
         else:
-            raise ValueError, style
+            raise ValueError(style)
 
     ### Input methods.
         

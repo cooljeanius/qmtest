@@ -81,7 +81,7 @@ class RegTest(Test):
         argv = (qmtest, "-D", path, "run", "-O", results, "-o", output)
         
         # If the context also specifies a target, add that.
-        if context.has_key("qmtest_target"):
+        if "qmtest_target" in context:
             argv += ("-T", context["qmtest_target"])
 
         # And if there is a context file, use it.

@@ -78,7 +78,7 @@ __doc__='''Conditional insertion
 __rcs_id__='$Id$'
 __version__='$Revision$'[11:-2]
 
-from DT_Util import ParseError, parse_params, name_param, str
+from .DT_Util import ParseError, parse_params, name_param, str
 
 class If:
     blockContinuations='else','elif'
@@ -103,13 +103,13 @@ class If:
             if args:
                 ename,expr=name_param(args,'else',1)
                 if ename != name:
-                    raise ParseError, ('name in else does not match if', 'in')
+                    raise ParseError('name in else does not match if', 'in')
             elses=section.blocks
         else: elses=None
 
         for tname, args, section in blocks[1:]:
             if tname=='else':
-                raise ParseError, (
+                raise ParseError(
                     'more than one else tag for a single if tag', 'in')
             args=parse_params(args, name='', expr='')
             name,expr=name_param(args,'elif',1)

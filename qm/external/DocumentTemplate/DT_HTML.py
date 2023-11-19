@@ -14,9 +14,9 @@
 
 $Id$"""
 
-from DT_String import String, FileMixin
+from .DT_String import String, FileMixin
 import DT_String, re
-from DT_Util import ParseError, str
+from .DT_Util import ParseError, str
 
 class dtml_re_class:
     """ This needs to be replaced before 2.4.  It's a hackaround. """
@@ -165,7 +165,7 @@ class HTML(DT_String.String):
         args=args.strip()
         if end:
             if not command or name != command.name:
-                raise ParseError, ('unexpected end tag', tag)
+                raise ParseError('unexpected end tag', tag)
             return tag, args, None, None
 
         if command and name in command.blockContinuations:
@@ -182,7 +182,7 @@ class HTML(DT_String.String):
 
         try: return tag, args, self.commands[name], None
         except KeyError:
-            raise ParseError, ('Unexpected tag', tag)
+            raise ParseError('Unexpected tag', tag)
 
     SubTemplate__roles__=()
     def SubTemplate(self, name): return HTML('', __name__=name)

@@ -26,7 +26,7 @@ import qm.test.database
 from   qm.test.expectation_database import ExpectationDatabase
 from   qm.test.context import *
 import qm.xmlutil
-from   result import *
+from   .result import *
 import select
 import sys
 import time
@@ -347,7 +347,7 @@ class ExecutionEngine:
         self.__target_groups = {}
         for target in self.__targets:
             self.__target_groups[target.GetGroup()] = None
-        self.__target_groups = self.__target_groups.keys()
+        self.__target_groups = list(self.__target_groups.keys())
         
         # A hash-table indicating whether or not a particular target
         # pattern is matched by any of our targets.
@@ -362,7 +362,7 @@ class ExecutionEngine:
             # If the user interrupted QMTest, stop executing tests.
             if self._IsTerminationRequested():
                 self._Trace("Terminating test loop as requested.")
-                raise TerminationRequested, "Termination requested."
+                raise TerminationRequested("Termination requested.")
 
             # Process any responses and update the count of idle targets.
             while self.__CheckForResponse(wait=0):
@@ -454,7 +454,7 @@ class ExecutionEngine:
                 # We ran out of prerequisite tests, so pull a new one
                 # off the user's list.
                 try:
-                    test_id = self.__tests_iterator.next()
+                    test_id = next(self.__tests_iterator)
                 except StopIteration:
                     # We're entirely out of fresh tests; give up.
                     return None
@@ -564,7 +564,7 @@ class ExecutionEngine:
         
         # Ignore prerequisites that are not going to be run at all.
         prereqs_iter = iter(descriptor.GetPrerequisites())
-        relevant_prereqs = filter(self.__statuses.has_key, prereqs_iter)
+        relevant_prereqs = list(filter(self.__statuses.has_key, prereqs_iter))
 
         # Store the test on the stack.
         self.__ids_on_stack[test_id] = None
@@ -588,7 +588,7 @@ class ExecutionEngine:
 
         # If we have not already determined whether or not this pattern
         # matches any of the targets, do so now.
-        if not self.__pattern_ok.has_key(pattern):
+        if pattern not in self.__pattern_ok:
             self.__pattern_ok[pattern] = 0
             for group in self.__target_groups:
                 if re.match(pattern, group):
@@ -617,7 +617,7 @@ class ExecutionEngine:
         needed = []
 
         prereqs = descriptor.GetPrerequisites()
-        for prereq_id, outcome in prereqs.iteritems():
+        for prereq_id, outcome in prereqs.items():
             try:
                 prereq_status = self.__statuses[prereq_id]
             except KeyError:
@@ -654,7 +654,7 @@ class ExecutionEngine:
         self._Trace("Recording %s result for %s." % (result.GetKind(), id))
 
         # Find the target with the name indicated in the result.
-        if result.has_key(Result.TARGET):
+        if Result.TARGET in result:
             for target in self.__targets:
                 if target.GetName() == result[Result.TARGET]:
                     break
@@ -756,7 +756,7 @@ class ExecutionEngine:
                 if self.__input_handlers:
                     # See if there is any input that might indicate that
                     # work has been done.
-                    fds = self.__input_handlers.keys()
+                    fds = list(self.__input_handlers.keys())
                     fds = select.select (fds, [], [], 0.1)[0]
                     for fd in fds:
                         self.__input_handlers[fd](fd)

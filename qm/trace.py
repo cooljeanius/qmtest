@@ -45,9 +45,8 @@ class Tracer:
 
         # Take any environment variables that begin with QM_THRESHOLD_
         # as the initial values for thresholds.
-        keys = filter (lambda key: (key[:len(Tracer.prefix)]
-                                    == Tracer.prefix),
-                       os.environ.keys())
+        keys = [key for key in list(os.environ.keys()) if (key[:len(Tracer.prefix)]
+                                    == Tracer.prefix)]
         for key in keys:
             level = os.environ[key]
             if level:

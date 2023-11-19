@@ -89,10 +89,10 @@ def get_dom_text(node):
         return ""
     # If there is a child, there should be only one.
     if len(node.childNodes) != 1:
-        raise QMException, "Invalid XML text node."
+        raise QMException("Invalid XML text node.")
     child = node.childNodes[0]
     if child.nodeType != xml.dom.Node.TEXT_NODE:
-        raise QMException, "Invalid XML text node."
+        raise QMException("Invalid XML text node.")
     return child.data
 
 
@@ -122,9 +122,9 @@ def get_child(node, child_tag):
     'child_tag', or more than one.. """
 
     matching_children = \
-        filter(child_tag_predicate(child_tag), node.childNodes)
+        list(filter(child_tag_predicate(child_tag), node.childNodes))
     if len(matching_children) != 1:
-        raise KeyError, child_tag
+        raise KeyError(child_tag)
     return matching_children[0]
 
 
@@ -158,7 +158,7 @@ def get_child_texts(node, child_tag):
     tag 'child_tag'.  Each child must have exactly one child of its own,
     which must be a text node."""
 
-    return map(get_dom_text, node.getElementsByTagName(child_tag))
+    return list(map(get_dom_text, node.getElementsByTagName(child_tag)))
 
 
 def create_dom_text_element(document, tag, text):

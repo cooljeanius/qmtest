@@ -24,8 +24,8 @@ information.
 # imports
 ########################################################################
 
-import cStringIO
-import htmlentitydefs
+import io
+import html.entities
 import re
 import string
 import sys
@@ -153,7 +153,7 @@ class TextFormatter(Formatter):
         # elements for the separators, too.
         words = re.split("( )", text)
         # Remove empty strings.
-        words = filter(None, words)
+        words = [_f for _f in words if _f]
         # Loop over words.
         start_of_line = 0
         for word in words:
@@ -552,7 +552,7 @@ class StructuredTextProcessor:
             indents = self.__indent_regex.findall(paragraph)
             # The paragraph's indentation is the minimum indentation
             # of its lines.
-            indentation = min(map(len, indents))
+            indentation = min(list(map(len, indents)))
             # Trim indentation from the first line.
             paragraph = paragraph[indentation:]
             
@@ -741,7 +741,7 @@ class StructuredTextProcessor:
             link_text = string.strip(match.group(1))
             # Is there a footnote providing a link target for this
             # phrase? 
-            if self.__hyperlinks.has_key(link_text):
+            if link_text in self.__hyperlinks:
                 # Yes.  Emit a hyperlink.
                 link_target = self.__hyperlinks[link_text]
                 # Recursively format everything up to the start of the
@@ -786,7 +786,7 @@ def to_html(structured_text):
     """Return 'structured_text' formatted as HTML."""
 
     # Create an HTML formatter that dumps its output to a StringIO.
-    output_string = cStringIO.StringIO()
+    output_string = io.StringIO()
     formatter = HtmlFormatter(output_string)
     # Generate output.
     __format(structured_text, formatter)
@@ -803,7 +803,7 @@ def to_text(structured_text, width=78, indent=0):
     output."""
 
     # Create a text formatter that dumps its output to a StringIO.
-    output_string = cStringIO.StringIO()
+    output_string = io.StringIO()
     formatter = TextFormatter(output_string, width=width, indent=indent)
     # Generate output.
     __format(structured_text, formatter)
@@ -902,9 +902,9 @@ def get_first_paragraph(structured_text):
 
 # Write a regular expression for finding characters that need to be
 # escaped as HTML entities.
-__entity_char_regex = htmlentitydefs.entitydefs.values()
+__entity_char_regex = list(html.entities.entitydefs.values())
 # We only handle single-byte characters.
-__entity_char_regex = filter(lambda l: len(l) == 1, __entity_char_regex)
+__entity_char_regex = [l for l in __entity_char_regex if len(l) == 1]
 __entity_char_regex = "[" + string.join(__entity_char_regex, "") + "]"
 __entity_char_regex = re.compile(__entity_char_regex)
 
@@ -912,7 +912,7 @@ __entity_char_regex = re.compile(__entity_char_regex)
 # entities.  Start by creating a map from the character to the
 # corresponding HTML entity code.
 __entity_char_replacement = {}
-for entity, character in htmlentitydefs.entitydefs.items():
+for entity, character in list(html.entities.entitydefs.items()):
     if len(character) == 1:
         __entity_char_replacement[character] = "&%s;" % entity
 # Write a function for use as the regex replacement that looks up the
@@ -962,7 +962,7 @@ if __name__ == "__main__":
         inputs = (sys.stdin, )
     else:
         # Yes; open them all.
-        inputs = map(lambda file_name: open(file_name, "rt"), arguments)
+        inputs = [open(file_name, "rt") for file_name in arguments]
 
     # Loop over inputs.
     for input in inputs:

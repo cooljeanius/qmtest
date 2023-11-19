@@ -17,8 +17,8 @@
 # imports
 ########################################################################
 
-import cPickle
-import cStringIO
+import pickle
+import io
 import os
 import qm
 import qm.attachment
@@ -99,7 +99,7 @@ def get_extension_directories(kind, database, database_path = None):
         
     # Start with the directories that the user has specified in the
     # QMTEST_CLASS_PATH environment variable.
-    if os.environ.has_key('QMTEST_CLASS_PATH'):
+    if 'QMTEST_CLASS_PATH' in os.environ:
         dirs = string.split(os.environ['QMTEST_CLASS_PATH'],
                             os.pathsep)
     else:
@@ -221,7 +221,7 @@ def get_extension_class_from_directory(class_name, kind, directory, path):
     
     # If this class is already in the cache, we can just return it.
     cache = __class_caches[kind]
-    if cache.has_key(class_name):
+    if class_name in cache:
         return cache[class_name]
 
     # Load the class.
@@ -233,11 +233,10 @@ def get_extension_class_from_directory(class_name, kind, directory, path):
 
     # Make sure the class is derived from the appropriate base class.
     if not issubclass(klass, __extension_bases[kind]):
-        raise QMException, \
-              qm.error("extension class not subclass",
+        raise QMException(qm.error("extension class not subclass",
                        kind = kind,
                        class_name = class_name,
-                       base_name = __extension_bases[kind].__name__)
+                       base_name = __extension_bases[kind].__name__))
                       
     # Cache it.
     cache[class_name] = klass
@@ -265,7 +264,7 @@ def get_extension_class(class_name, kind, database, database_path = None):
     
     # If this class is already in the cache, we can just return it.
     cache = __class_caches[kind]
-    if cache.has_key(class_name):
+    if class_name in cache:
         return cache[class_name]
 
     # For backwards compatibility with QM 1.1.x, we accept
@@ -285,8 +284,8 @@ def get_extension_class(class_name, kind, database, database_path = None):
 
     # If the class could not be found, issue an error.
     if not directory:
-        raise QMException, qm.error("extension class not found",
-                                    klass=class_name)
+        raise QMException(qm.error("extension class not found",
+                                    klass=class_name))
 
     # Load the class.
     return get_extension_class_from_directory(class_name, kind,
@@ -354,7 +353,7 @@ def load_results(file, database):
     appropriate reader is available."""
 
     f = None
-    if isinstance(file, types.StringTypes):
+    if isinstance(file, (str,)):
         if os.path.exists(file):
             f = open(file, "rb")
     else:
@@ -368,9 +367,8 @@ def load_results(file, database):
                 except FileResultReader.InvalidFile:
                     # Go back to the beginning of the file.
                     f.seek(0)
-    if not isinstance(file, types.StringTypes):
-        raise FileResultReader.InvalidFile, \
-              "not a valid results file"
+    if not isinstance(file, (str,)):
+        raise FileResultReader.InvalidFile("not a valid results file")
     if database:
         extension_loader = database.GetExtension
     else:
@@ -403,15 +401,15 @@ def load_expectations(file, database, annotations = None):
     if not file:
         return ExpectationDatabase()
     f = None
-    if isinstance(file, (str, unicode)):
+    if isinstance(file, str):
         if os.path.exists(file):
             f = open(file, "rb")
     else:
         f = file
     if f:
         return PreviousTestRun(test_database = database, results_file = f)
-    if not isinstance(file, (str, unicode)):
-        raise QMException, "not a valid expectation database"
+    if not isinstance(file, str):
+        raise QMException("not a valid expectation database")
     if database:
         extension_loader = database.GetExtension
     else:
@@ -509,7 +507,7 @@ __extension_bases = {
 An extension class of a particular 'kind' must be derived from
 'extension_bases[kind]'."""
 
-extension_kinds = __extension_bases.keys()
+extension_kinds = list(__extension_bases.keys())
 """Names of different kinds of QMTest extension classes."""
 extension_kinds.sort()
 

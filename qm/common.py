@@ -18,9 +18,9 @@
 ########################################################################
 
 from   calendar import timegm
-import ConfigParser
+import configparser
 import imp
-import lock
+from . import lock
 import os
 import os.path
 import qm
@@ -32,7 +32,7 @@ import time
 import traceback
 import types
 import getpass
-import StringIO
+import io
 import htmllib
 import formatter
 if sys.platform != "win32":
@@ -103,7 +103,7 @@ class PythonException(QMException):
 # classes
 ########################################################################
 
-class RcConfiguration(ConfigParser.ConfigParser):
+class RcConfiguration(configparser.ConfigParser):
     """Interface object to QM configuration files.
 
     Configuration files are in the format parsed by the standard
@@ -116,8 +116,8 @@ class RcConfiguration(ConfigParser.ConfigParser):
     def __init__(self):
         """Create a new configuration instance."""
 
-        ConfigParser.ConfigParser.__init__(self)
-        if os.environ.has_key("HOME"):
+        configparser.ConfigParser.__init__(self)
+        if "HOME" in os.environ:
             home_directory = os.environ["HOME"]
             rc_file = os.path.join(home_directory, self.user_rc_file_name)
             # Note that it's OK to call 'read' even if the file doesn't
@@ -157,10 +157,10 @@ class RcConfiguration(ConfigParser.ConfigParser):
         try:
             # Try to get the requested option.
             return self.get(section, option)
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             # Couldn't find the section.
             return default
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             # Couldn't find the option.
             return default
 
@@ -179,7 +179,7 @@ class RcConfiguration(ConfigParser.ConfigParser):
             section = self.__section
         try:
             options = self.options(section)
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             # Couldn't find the section.
             return []
         else:
@@ -312,7 +312,7 @@ def load_module(name, search_path=sys.path, load_path=sys.path):
                 module = imp.load_module(name, file, file_name, description)
             except:
                 # Don't leave a broken module object in sys.modules.
-                if sys.modules.has_key(name):
+                if name in sys.modules:
                     del sys.modules[name]
                 raise
             # Restore the old path.
@@ -354,8 +354,7 @@ def load_class(name, search_path = sys.path, load_path = sys.path):
     # in a top-level module, so there should be at least one module path
     # separator. 
     if not "." in name:
-        raise QMException, \
-              "%s is not a fully-qualified class name" % name
+        raise QMException("%s is not a fully-qualified class name" % name)
     # Split the module path into components.
     components = string.split(name, ".")
     # Reconstruct the full path to the containing module.
@@ -371,15 +370,14 @@ def load_class(name, search_path = sys.path, load_path = sys.path):
         # "new-style" classes are not instances of types.ClassType so we
         # must check two conditions: one for old-style and one for
         # new-style classes.
-        if (not isinstance(klass, types.ClassType)
+        if (not isinstance(klass, type)
             and not issubclass(klass, object)):
             # There's something by that name, but it's not a class
-            raise QMException, "%s is not a class" % name
+            raise QMException("%s is not a class" % name)
         return klass
     except KeyError:
         # There's no class with the requested name.
-        raise QMException, \
-              "no class named %s in module %s" % (class_name, module_name)
+        raise QMException("no class named %s in module %s" % (class_name, module_name))
     
     
 def split_path_fully(path):
@@ -417,14 +415,13 @@ def open_temporary_file_fd(suffix = ""):
         # Attempt to open the file.
         fd = os.open(file_name,
                      os.O_CREAT | os.O_EXCL | os.O_RDWR,
-                     0600)
+                     0o600)
     except:
         exc_info = sys.exc_info()
-        raise QMException, \
-              qm.error("temp file error",
+        raise QMException(qm.error("temp file error",
                        file_name=file_name,
                        exc_class=str(exc_info[0]),
-                       exc_arg=str(exc_info[1]))
+                       exc_arg=str(exc_info[1])))
     return (file_name, fd)
 
 
@@ -471,10 +468,10 @@ def copy(object):
     returns -- A copy of 'object', if feasible, or otherwise
     'object'."""
 
-    if type(object) is types.ListType:
+    if type(object) is list:
         # Copy lists.
         return object[:]
-    elif type(object) is types.DictionaryType:
+    elif type(object) is dict:
         # Copy dictionaries.
         return object.copy()
     elif type(object) is types.InstanceType:
@@ -530,7 +527,7 @@ def wrap_lines(text, columns=72, break_delimiter="\\", indent=""):
             # Replace the old line with the new.
             lines[index] = new_line
     # Indent each line.
-    lines = map(lambda l, i=indent: i + l, lines)
+    lines = list(map(lambda l, i=indent: i + l, lines))
     # Rejoin lines.
     return string.join(lines, "\n")
 
@@ -635,7 +632,7 @@ def parse_boolean(value):
     elif value in ("0", "false", "no", "off"):
         return 0
     else:
-        raise ValueError, value
+        raise ValueError(value)
 
     
 def parse_string_list(value):
@@ -674,7 +671,7 @@ def parse_string_list(value):
         esc = False
     # Make sure quotes are matched.
     if quoted_1 or quoted_2 or esc:
-        raise ValueError, value
+        raise ValueError(value)
     string_list = []
     start = 0
     for end in breaks:
@@ -757,10 +754,10 @@ def parse_time(time_string, default_local_time_zone=1):
     for component in components:
         if string.count(component, "-") == 2:
             # Looks like a date.
-            year, month, day = map(int, string.split(component, "-"))
+            year, month, day = list(map(int, string.split(component, "-")))
         elif string.count(component, ":") in [1, 2]:
             # Looks like a time.
-            hour, minute = map(int, string.split(component, ":")[:2])
+            hour, minute = list(map(int, string.split(component, ":")[:2]))
         else:
             # Don't understand it.
             raise ValueError
@@ -787,9 +784,8 @@ def parse_assignment(assignment):
         (name, value) = string.split(assignment, "=", 1)
         return (name, value)
     except:
-        raise QMException, \
-              qm.error("invalid keyword assignment",
-                       argument=assignment)
+        raise QMException(qm.error("invalid keyword assignment",
+                       argument=assignment))
 
 
 def read_assignments(file):
@@ -812,11 +808,10 @@ def read_assignments(file):
     # Read all the lines in the file.
     lines = file.readlines()
     # Strip out leading and trailing whitespace.
-    lines = map(string.strip, lines)
+    lines = list(map(string.strip, lines))
     # Drop any lines that are completely blank or lines that are
     # comments.
-    lines = filter(lambda x: x != "" and not x.startswith("#"),
-                   lines)
+    lines = [x for x in lines if x != "" and not x.startswith("#")]
     # Go through each of the lines to process the context assignment.
     for line in lines:
         # Parse the assignment.
@@ -856,7 +851,7 @@ def get_username():
                                   *sys.exc_info()[:2])
 
     # And if none of that worked, give up.
-    raise QMException, "Cannot determine user name."
+    raise QMException("Cannot determine user name.")
 
 
 def get_userid():
@@ -871,7 +866,7 @@ def get_userid():
     try:
         uid = os.getuid()
     except AttributeError:
-        raise QMException, "User ids not supported on this system."
+        raise QMException("User ids not supported on this system.")
     return uid
     
 
@@ -885,7 +880,7 @@ def html_to_text(html, width=72):
     returns -- A string containing a plain text rendering of the
     HTML."""
 
-    s = StringIO.StringIO()
+    s = io.StringIO()
     w = formatter.DumbWriter(s, width)
     f = formatter.AbstractFormatter(w)
     p = htmllib.HTMLParser(f)

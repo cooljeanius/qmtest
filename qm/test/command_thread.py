@@ -18,7 +18,7 @@
 ########################################################################
 
 import qm
-import Queue
+import queue
 from   threading import *
 import sys
 import types
@@ -54,7 +54,7 @@ class CommandThread(Thread):
 
 	# Create the queue to which the controlling thread will
 	# write commands.
-	self.__command_queue = Queue.Queue(0)
+	self.__command_queue = queue.Queue(0)
 
 
     def run(self):
@@ -69,7 +69,7 @@ class CommandThread(Thread):
 
                 # If the command is just a string, it should be
                 # the 'Stop' command.
-                if isinstance(command, types.StringType):
+                if isinstance(command, bytes):
                     assert command == "Stop"
                     self._Trace("Received stop command")
                     self._Stop()

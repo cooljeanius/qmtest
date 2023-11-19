@@ -26,11 +26,11 @@
 # must always be zero.
 
 try:
-    import thread
+    import _thread
 
     # If we successfully imported the thread module, we can just use
     # the builtin Queue.
-    from Queue import *
+    from .Queue import *
 except:
     # This code is based on the Python 2.2 Queue.py, but without
     # the threading calls.

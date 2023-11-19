@@ -41,7 +41,7 @@ class FileLabel(Label):
         new label.  All but the last are taken as directory names; the
         last is treated as a basename."""
 
-        return self.__class__(apply(os.path.join, (self._label,) + labels))
+        return self.__class__(os.path.join(*(self._label,) + labels))
     
         
     def Split(self):

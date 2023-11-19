@@ -26,7 +26,7 @@
 __rcs_id__='$Id$'
 __version__='$Revision$'[11:-2]
 
-from DT_Util import parse_params, name_param, render_blocks, str
+from .DT_Util import parse_params, name_param, render_blocks, str
 
 class Raise:
     blockContinuations=()
@@ -44,7 +44,7 @@ class Raise:
         expr=self.expr
         if expr is None:
             t=self.__name__
-            if t[-5:]=='Error' and __builtins__.has_key(t):
+            if t[-5:]=='Error' and t in __builtins__:
                 t=__builtins__[t]
         else:
             try: t=expr.eval(md)
@@ -53,6 +53,6 @@ class Raise:
         try: v=render_blocks(self.section,md)
         except: v='Invalid Error Value'
 
-        raise t, v
+        raise t(v)
 
     __call__=render

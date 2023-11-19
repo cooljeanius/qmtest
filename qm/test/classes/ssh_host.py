@@ -151,7 +151,7 @@ class SSHHost(Host):
             command += ["-l", self.user_name]
         if environment is not None:
             command.append("env")
-            for (k, v) in environment.iteritems():
+            for (k, v) in environment.items():
                 command.append("%s='%s'" % (k, v))
         command.append(path)
         command += arguments

@@ -16,17 +16,17 @@ __doc__='''short description
 $Id$'''
 __version__='$Revision$'[11:-2]
 
-from DocumentTemplate import *
+from .DocumentTemplate import *
 import sys
 
 def test1():
-    print HTML('area code=<!--#var expr="phone[:3]"-->')(phone='7035551212')
+    print(HTML('area code=<!--#var expr="phone[:3]"-->')(phone='7035551212'))
 
 def test2():
-    print HTML('area code=<!--#var expr="phone.number"-->')(phone='7035551212')
+    print(HTML('area code=<!--#var expr="phone.number"-->')(phone='7035551212'))
 
 def test3():
-    print HTML('area code=<!--#var expr="phone*1000"-->')(phone='7035551212')
+    print(HTML('area code=<!--#var expr="phone*1000"-->')(phone='7035551212'))
 
 def test4():
 
@@ -44,9 +44,9 @@ def test4():
         """)
 
     for i in range(4):
-        print '-' * 77
-        print i, h(level=i)
-    print '-' * 77
+        print('-' * 77)
+        print(i, h(level=i))
+    print('-' * 77)
 
 
 if __name__ == "__main__":

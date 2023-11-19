@@ -34,7 +34,7 @@ class DependencyCheckingResource(Resource):
         # Make sure all resources we depend on have already been
         # set up.
         for r in self.resources:
-            if not _extant_resources.has_key(r):
+            if r not in _extant_resources:
                 result.Fail("Resource %s not set up yet" % r)
 
         # Mark ourself as set up.
@@ -45,7 +45,7 @@ class DependencyCheckingResource(Resource):
 
         # Make sure all resources we depend on are still set up.
         for r in self.resources:
-            if not _extant_resources.has_key(r):
+            if r not in _extant_resources:
                 result.Fail("Resource %s torn down already" % r)
 
         # Mark ourself as no longer set up.

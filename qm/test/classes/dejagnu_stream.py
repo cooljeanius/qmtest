@@ -18,7 +18,7 @@
 ########################################################################
 
 import cgi
-from   dejagnu_test import DejaGNUTest
+from   .dejagnu_test import DejaGNUTest
 import qm.fields
 from   qm.test.file_result_stream import FileResultStream
 from   qm.test.result import Result
@@ -97,8 +97,7 @@ class DejaGNUStream(FileResultStream):
     def WriteResult(self, result):
 
         # Get the DejaGNU annotations in sorted order.
-        keys = filter(lambda k: k.startswith(DejaGNUTest.RESULT_PREFIX),
-                      result.keys())
+        keys = [k for k in list(result.keys()) if k.startswith(DejaGNUTest.RESULT_PREFIX)]
         keys.sort(lambda k1, k2: cmp(int(k1[len(DejaGNUTest.RESULT_PREFIX):]),
                                      int(k2[len(DejaGNUTest.RESULT_PREFIX):])))
         has_error = 0
@@ -205,8 +204,7 @@ class DejaGNUReader(FileResultReader):
         super(DejaGNUReader, self).__init__(arguments, **args)
         # DejaGNU files start with "Test Run".
         if self.file.read(len("Test Run")) != "Test Run":
-            raise FileResultReader.InvalidFile, \
-                  "file is not a DejaGNU result stream"
+            raise FileResultReader.InvalidFile("file is not a DejaGNU result stream")
         self.file.seek(0)
         if self.__UseCombinedMode():
             test_id, dejagnu_outcome, cause = self.__NextOutcome()
@@ -260,7 +258,7 @@ class DejaGNUReader(FileResultReader):
         # next result.
         while self.file:
             # Read the next line of the file.
-            line = self.file.next()
+            line = next(self.file)
             # Each test result is printed on a line by itself,
             # beginning with the DejaGNU outcome.  For example:
             #   PASS: g++.dg/compat/eh/template1 cp_compat_y_tst.o compile

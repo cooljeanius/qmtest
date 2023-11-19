@@ -17,7 +17,7 @@
 # Imports
 ########################################################################
 
-from   __future__ import nested_scopes
+
 import os
 import re
 import string
@@ -46,7 +46,7 @@ class Label:
 
         'label' -- A string giving the value of the label."""
 
-        assert type(label) in (types.StringType, types.UnicodeType)
+        assert type(label) in (bytes, str)
         self._label = label
         
 
@@ -185,7 +185,7 @@ def thunk(label):
         label = label[1:]
     # Make sure the label isn't empty.
     if label == "":
-        raise ValueError, "Empty label"
+        raise ValueError("Empty label")
     return label
 
 ########################################################################

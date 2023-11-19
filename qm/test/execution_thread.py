@@ -23,8 +23,8 @@ from   qm.test.base import *
 from   qm.test.context import *
 from   qm.test.execution_engine import *
 import qm.xmlutil
-import Queue
-from   result import *
+import queue
+from   .result import *
 import sys
 from   threading import *
 

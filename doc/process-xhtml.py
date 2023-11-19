@@ -52,7 +52,7 @@ terms_classes = [
 # The same class name with 'Def' appended is taken recognized as the
 # definition of a term.  So, for instance, 'TermDef' is the class for
 # terminology definitions, and 'Term' for corresponding uses.
-terms_def_classes = map(lambda klass: klass + 'Def', terms_classes)
+terms_def_classes = [klass + 'Def' for klass in terms_classes]
 
 
 def to_camel_caps(str):
@@ -60,7 +60,7 @@ def to_camel_caps(str):
     # Break STR into words.
     words = string.split(string.strip(str))
     # Capitalize each word.
-    words = map(string.capitalize, words)
+    words = list(map(string.capitalize, words))
     # Join the words together, without spaces among them.
     return string.join(words, '')
     
@@ -114,7 +114,7 @@ while 1:
     # Add/update a reference in the terms dictionary.
     ref = '%s#%s' % (input_file, label)
     klass = klass[ : -3]
-    if not terms.has_key(klass):
+    if klass not in terms:
         terms[klass] = {}
     klass_dict = terms[klass]
     klass_dict[term] = ref
@@ -128,14 +128,14 @@ while 1:
     klass = match.group('class')
     term = clean_up_term(match.group('term'))
     # Look up the term in the terms dictionary.
-    if not terms.has_key(klass):
+    if klass not in terms:
         terms[klass] = {}
     klass_dict = terms[klass]
-    if klass_dict.has_key(term):
+    if term in klass_dict:
         ref = klass_dict[term]
     # If the term ends with 's', naively assume its a pluralized form
     # and try to find the singluar.
-    elif term[-1] == 's' and klass_dict.has_key(term[ : -1]):
+    elif term[-1] == 's' and term[ : -1] in klass_dict:
         ref = klass_dict[term[ : -1]]
     else:
         # The term is not in our dictionary.  Emit a warning and use a
@@ -153,7 +153,7 @@ while 1:
             + input[match.end() : ]
 
 # Write the result to standard output.
-print input
+print(input)
 
 # Write out the terms cache file.
 terms_file = open(terms_filename, 'w')

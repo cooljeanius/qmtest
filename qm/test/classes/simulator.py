@@ -15,7 +15,7 @@
 # Imports
 #######################################################################
 
-from local_host import LocalHost
+from .local_host import LocalHost
 from qm.fields import TextField, SetField
 
 ########################################################################

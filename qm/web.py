@@ -19,29 +19,29 @@
 # imports
 ########################################################################
 
-import BaseHTTPServer
+import http.server
 import cgi
-import diagnostic
+from . import diagnostic
 import errno
-import htmlentitydefs
+import html.entities
 import os
 import os.path
-import common
+from . import common
 import qm.platform
 import qm.user
 import re
-import SimpleHTTPServer
-import SocketServer
+import http.server
+import socketserver
 import socket
 import string
-import structured_text
+from . import structured_text
 import sys
-import temporary_directory
+from . import temporary_directory
 import time
 import traceback
 import types
-import urllib
-import user
+import urllib.request, urllib.parse, urllib.error
+from . import user
 import random
 
 import qm.external.DocumentTemplate as DocumentTemplate
@@ -134,7 +134,7 @@ class DtmlPage:
         variable context."""
 
         self.__dtml_template = dtml_template
-        for key, value in attributes.items():
+        for key, value in list(attributes.items()):
             setattr(self, key, value)
         
 
@@ -180,7 +180,7 @@ class DtmlPage:
         'fields', using the request associated with this object as the
         base request."""
 
-        return apply(WebRequest, (script_url, self.request), fields)
+        return WebRequest(*(script_url, self.request), **fields)
 
 
     def GenerateXMLHeader(self):
@@ -316,7 +316,7 @@ class DtmlPage:
 
         The resulting HTML must be included in a form."""
 
-        request = apply(WebRequest, [script_url, self.request], fields)
+        request = WebRequest(*[script_url, self.request], **fields)
         return make_button_for_request(title, request, css_class)
 
 
@@ -404,7 +404,7 @@ class HttpRedirect(Exception):
 
 
 
-class WebRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class WebRequestHandler(http.server.SimpleHTTPRequestHandler):
     """Handler for HTTP requests.
 
     This class groups callback functions that are invoked in response
@@ -417,7 +417,7 @@ class WebRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     # Update the extensions_map so that files are mapped to the correct
     # content-types.
-    SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map.update(
+    http.server.SimpleHTTPRequestHandler.extensions_map.update(
         { '.css' : 'text/css',
           '.js' : 'text/javascript' }
         )
@@ -428,7 +428,7 @@ class WebRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         # Parse the query string encoded in the URL, if any.
         script_url, fields = parse_url_query(self.path)
         # Build a request object and hand it off.
-        request = apply(WebRequest, (script_url, ), fields)
+        request = WebRequest(*(script_url, ), **fields)
         # Store the client's IP address with the request.
         request.client_address = self.client_address[0]
         
@@ -449,7 +449,7 @@ class WebRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             fields = cgi.parse_multipart(self.rfile, params) 
             # For each field, take the first value, discarding others.
             # We don't support multi-valued fields.
-            for name, value in fields.items():
+            for name, value in list(fields.items()):
                 if len(value) == 1:
                     fields[name] = value[0]
             # There may be additional query arguments in the URL, so
@@ -458,7 +458,7 @@ class WebRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             # Merge query arguments from the form and from the URL.
             fields.update(url_fields)
             # Create and process a request.
-            request = apply(WebRequest, (script_url, ), fields)
+            request = WebRequest(*(script_url, ), **fields)
             # Store the client's IP address with the request.
             request.client_address = self.client_address[0]
             self.__HandleRequest(request)
@@ -474,11 +474,11 @@ class WebRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             # text to return to the client.
             try:
                 script_output = self.server.ProcessScript(request)
-            except NoSessionError, msg:
+            except NoSessionError as msg:
                 script_output = self.server.HandleNoSessionError(request, msg)
-            except InvalidSessionError, msg:
+            except InvalidSessionError as msg:
                 script_output = generate_login_form(request, msg)
-        except HttpRedirect, redirection:
+        except HttpRedirect as redirection:
             # The script requested an HTTP redirect response to
             # the client.
             self.send_response(302)
@@ -494,12 +494,12 @@ class WebRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             # information about the exception instead.
             script_output = format_exception(sys.exc_info())
         # Send its output.
-        if isinstance(script_output, types.StringType):
+        if isinstance(script_output, bytes):
             # The return value from the script is a string.  Assume it's
             # HTML text, and send it appropriate.ly.
             mime_type = "text/html"
             data = script_output
-        elif isinstance(script_output, types.TupleType):
+        elif isinstance(script_output, tuple):
             # The return value from the script is a tuple.  Assume the
             # first element is a MIME type and the second is result
             # data.
@@ -527,7 +527,7 @@ class WebRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def __HandleFileRequest(self, request, path):
         # There should be no query arguments to a request for an
         # ordinary file.
-        if len(request.keys()) > 0:
+        if len(list(request.keys())) > 0:
             self.send_error(400, "Unexpected request.")
             return
         # Open the file.
@@ -620,7 +620,7 @@ class WebRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 
 
-class HTTPServer(BaseHTTPServer.HTTPServer):
+class HTTPServer(http.server.HTTPServer):
     """Workaround for problems in 'BaseHTTPServer.HTTPServer'.
 
     The Python 1.5.2 library's implementation of
@@ -646,7 +646,7 @@ class HTTPServer(BaseHTTPServer.HTTPServer):
         # local host name, which fails more gracefully under this
         # circumstance. 
 
-        SocketServer.TCPServer.server_bind(self)
+        socketserver.TCPServer.server_bind(self)
         host, port = self.socket.getsockname()
 
         # Use the primary host name if we're bound to all interfaces.
@@ -745,7 +745,7 @@ class WebServer(HTTPServer):
 
         self.__cache_dir = temporary_directory.TemporaryDirectory()
         self.__cache_path = self.__cache_dir.GetPath()
-        os.mkdir(os.path.join(self.__cache_path, "sessions"), 0700)
+        os.mkdir(os.path.join(self.__cache_path, "sessions"), 0o700)
 
         # Create a temporary attachment store to process attachment data
         # uploads.
@@ -808,7 +808,7 @@ class WebServer(HTTPServer):
     def IsScript(self, request):
         """Return a true value if 'request' corresponds to a script."""
 
-        return self.__scripts.has_key(request.GetUrl())
+        return request.GetUrl() in self.__scripts
 
 
     def ProcessScript(self, request):
@@ -831,7 +831,7 @@ class WebServer(HTTPServer):
 
         path = request.GetUrl()
         # Loop over translations.
-        for url_path, file_path in self.__translations.items():
+        for url_path, file_path in list(self.__translations.items()):
             # Is this translation a prefix of the URL?
             if path[:len(url_path)] == url_path:
                 # Yes.  First cut off the prefix that matched.
@@ -881,7 +881,7 @@ class WebServer(HTTPServer):
             self.server_address = (self.__address, self.__port)
             self.server_bind()
             self.server_activate()
-        except socket.error, error:
+        except socket.error as error:
             error_number, message = error
             if error_number == errno.EADDRINUSE:
                 # The specified address/port is already in use.
@@ -889,10 +889,10 @@ class WebServer(HTTPServer):
                     address = "port %d" % self.__port
                 else:
                     address = "%s:%d" % (self.__address, self.__port)
-                raise AddressInUseError, address
+                raise AddressInUseError(address)
             elif error_number == errno.EACCES:
                 # Permission denied.
-                raise PrivilegedPortError, "port %d" % self.__port
+                raise PrivilegedPortError("port %d" % self.__port)
             else:
                 # Propagate other exceptions.
                 raise
@@ -1043,7 +1043,7 @@ class WebServer(HTTPServer):
             script_name = _session_cache_name
             # Create that directory if it doesn't exist.
             if not os.path.isdir(dir_path):
-                os.mkdir(dir_path, 0700)
+                os.mkdir(dir_path, 0o700)
 
         # Generate a name for the page.
         global _counter
@@ -1051,7 +1051,7 @@ class WebServer(HTTPServer):
         _counter = _counter + 1
         # Write it.
         page_file_name = os.path.join(dir_path, page_name)
-        page_file = open(page_file_name, "w", 0600)
+        page_file = open(page_file_name, "w", 0o600)
         page_file.write(page_text)
         page_file.close()
 
@@ -1140,7 +1140,7 @@ class WebServer(HTTPServer):
     def _HandleRoot(self, request):
         """Handle the '/' URL."""
         
-        raise HttpRedirect, WebRequest("/static/index.html")
+        raise HttpRedirect(WebRequest("/static/index.html"))
 
 
     def handle_error(self, request, client_address):
@@ -1195,7 +1195,7 @@ class WebRequest:
 
     def __str__(self):
         str = "WebRequest for %s\n" % self.__url
-        for name, value in self.__fields.items():
+        for name, value in list(self.__fields.items()):
             str = str + "%s=%s\n" % (name, repr(value))
         return str
 
@@ -1239,7 +1239,7 @@ class WebRequest:
 
         session_id = self.GetSessionId()
         if session_id is None:
-            raise NoSessionError, qm.error("session required")
+            raise NoSessionError(qm.error("session required"))
         else:
             return get_session(self, session_id)
 
@@ -1252,12 +1252,12 @@ class WebRequest:
         (other than this, the order of query arguments is not
         defined)."""
 
-        if len(self.keys()) == 0:
+        if len(list(self.keys())) == 0:
             # No query arguments; just use the script URL.
             return self.GetUrl()
         else:
             # Encode query arguments into the URL.
-            return "%s?%s" % (self.GetUrl(), urllib.urlencode(self))
+            return "%s?%s" % (self.GetUrl(), urllib.parse.urlencode(self))
 
 
     def AsForm(self, method="get", name=None):
@@ -1289,9 +1289,9 @@ class WebRequest:
                               action="%s">\n''' \
             % (name_attribute, self.GetUrl())
         else:
-            raise ValueError, "unknown method %s" % method
+            raise ValueError("unknown method %s" % method)
         # Add hidden inputs for the request arguments.
-        for name, value in self.items():
+        for name, value in list(self.items()):
             result = result \
                      + '<input type="hidden" name="%s" value="%s">\n' \
                      % (name, value)
@@ -1318,15 +1318,15 @@ class WebRequest:
     
 
     def keys(self):
-        return self.__fields.keys()
+        return list(self.__fields.keys())
 
 
     def has_key(self, key):
-        return self.__fields.has_key(key)
+        return key in self.__fields
 
 
     def items(self):
-        return self.__fields.items()
+        return list(self.__fields.items())
     
 
     def copy(self, url=None, **fields):
@@ -1345,7 +1345,7 @@ class WebRequest:
         new_fields = self.__fields.copy()
         new_fields.update(fields)
         # Make the request.
-        new_request = apply(WebRequest, (url, ), new_fields)
+        new_request = WebRequest(*(url, ), **new_fields)
         # Copy the client address, if present.
         if hasattr(self, "client_address"):
             new_request.client_address = self.client_address
@@ -1363,7 +1363,7 @@ class CGIWebRequest:
         preconditions -- The CGI environment (environment variables
         etc.) must be in place."""
 
-        assert os.environ.has_key("GATEWAY_INTERFACE")
+        assert "GATEWAY_INTERFACE" in os.environ
         assert os.environ["GATEWAY_INTERFACE"][:3] == "CGI"
 
         self.__fields = cgi.FieldStorage()
@@ -1378,11 +1378,11 @@ class CGIWebRequest:
 
 
     def keys(self):
-        return self.__fields.keys()
+        return list(self.__fields.keys())
 
 
     def has_key(self, key):
-        return self.__fields.has_key(key)
+        return key in self.__fields
 
 
     def copy(self):
@@ -1392,9 +1392,9 @@ class CGIWebRequest:
         modified safely."""
 
         fields = {}
-        for key in self.keys():
+        for key in list(self.keys()):
             fields[key] = self[key]
-        return apply(WebRequest, (self.GetUrl(), ), fields)
+        return WebRequest(*(self.GetUrl(), ), **fields)
 
 
 def _create_session_id():
@@ -1499,10 +1499,10 @@ class Session:
         # Make sure the client IP address in the request matches that
         # for this session.
         if self.__client_address != request.client_address:
-            raise InvalidSessionError, qm.error("session wrong IP")
+            raise InvalidSessionError(qm.error("session wrong IP"))
         # Make sure the session hasn't expired.
         if self.IsExpired():
-            raise InvalidSessionError, qm.error("session expired")
+            raise InvalidSessionError(qm.error("session expired"))
 
 
 
@@ -1533,17 +1533,17 @@ def parse_url_query(url):
         # 'parse_qs' produces a list of values for each key; check
         # that each list contains only one item, and replace the
         # list with that item.
-        for key, value_list in fields.items():
+        for key, value_list in list(fields.items()):
             if len(value_list) != 1:
                 # Tell the client that we don't like this query.
-                print "WARNING: Multiple values in query."
+                print("WARNING: Multiple values in query.")
             fields[key] = value_list[0]
     else:
         # No, it's just an ordinary URL.
         script_url = url
         fields = {}
 
-    script_url = urllib.unquote(script_url)
+    script_url = urllib.parse.unquote(script_url)
     return (script_url, fields)
 
 
@@ -1615,7 +1615,7 @@ __entity_regex = re.compile("&(\w+);")
 def __replacement_for_entity(match):
     entity = match.group(1)
     try:
-        return htmlentitydefs.entitydefs[entity]
+        return html.entities.entitydefs[entity]
     except KeyError:
         return "&%s;" % entity
 
@@ -1648,7 +1648,7 @@ def make_url(script_name, base_request=None, **fields):
 
     'fields' -- Additional fields to include in the request."""
 
-    request = apply(WebRequest, (script_name, base_request), fields)
+    request = WebRequest(*(script_name, base_request), **fields)
     return request.AsUrl()
 
 
@@ -1708,7 +1708,7 @@ def get_session(request, session_id):
         session = sessions[session_id]
     except KeyError:
         # No session for this ID (note that it may have expired).
-        raise InvalidSessionError, qm.error("session invalid")
+        raise InvalidSessionError(qm.error("session invalid"))
     # Make sure the session is valid for this request.
     session.Validate(request)
     # Update the last access time.
@@ -1719,7 +1719,7 @@ def get_session(request, session_id):
 def __clean_up_expired_sessions():
     """Remove any sessions that are expired."""
 
-    for session_id, session in sessions.items():
+    for session_id, session in list(sessions.items()):
         if session.IsExpired():
             del sessions[session_id]
 
@@ -1756,7 +1756,7 @@ def handle_login(request, default_redirect_url="/"):
         return generate_login_form(redirect_request, message)
 
     # Check if there is currently a session open for the same user ID.
-    for session in sessions.values():
+    for session in list(sessions.values()):
         if session.GetUserId() == user_id:
             # Yup.  There should be only one session at a time for any
             # given user. Close that session.
@@ -1772,12 +1772,12 @@ def handle_login(request, default_redirect_url="/"):
     # redirecting URL.
     del redirect_request["_login_user_name"]
     del redirect_request["_login_password"]
-    if redirect_request.has_key("_redirect_url"):
+    if "_redirect_url" in redirect_request:
         del redirect_request["_redirect_url"]
     # Add the ID of the new session to the request.
     redirect_request.SetSessionId(session_id)
     # Redirect the client to the URL for the redirected page.
-    raise HttpRedirect, redirect_request
+    raise HttpRedirect(redirect_request)
 
 
 def handle_logout(request, default_redirect_url="/"):
@@ -1798,11 +1798,11 @@ def handle_logout(request, default_redirect_url="/"):
     # '_redirect_url' field.
     redirect_url = request.get("_redirect_url", default_redirect_url)
     redirect_request = request.copy(redirect_url)
-    if redirect_request.has_key("_redirect_url"):
+    if "_redirect_url" in redirect_request:
         del redirect_request["_redirect_url"]
     del redirect_request[session_id_field]
     # Redirect to the specified request.
-    raise HttpRedirect, redirect_request
+    raise HttpRedirect(redirect_request)
 
 
 def generate_error_page(request, error_text):
@@ -1884,7 +1884,7 @@ def make_set_control(form_name,
 
     # Construct the hidden control contianing the set's elements.  Its
     # initial value is the encoding of the initial elements.
-    initial_values = map(lambda x: x[1], initial_elements)
+    initial_values = [x[1] for x in initial_elements]
     initial_value = encode_set_control_contents(initial_values)
     contents = '<input type="hidden" name="%s" value="%s"/>' \
                % (field_name, initial_value)
@@ -1997,7 +1997,7 @@ def make_properties_control(form_name,
                 form_name, name_control_name, form_name, value_control_name,
                 form_name, add_change_button_name)
     # Add an option for each initial property.
-    keys = properties.keys()
+    keys = list(properties.keys())
     keys.sort()
     for k in keys:
         select = select + \
@@ -2094,8 +2094,7 @@ def encode_properties(properties):
 
     # Construct a list of property assignment strings.  The RHS is
     # URL-quoted. 
-    result = map(lambda p: "%s=%s" % (p[0], urllib.quote_plus(p[1])),
-                 properties.items())
+    result = ["%s=%s" % (p[0], urllib.parse.quote_plus(p[1])) for p in list(properties.items())]
     # Join them into a comma-delimited list.
     return string.join(result, ",")
         
@@ -2122,7 +2121,7 @@ def decode_properties(properties):
         # Each element is a "name=value" assignment.  Split it up.
         name, value = string.split(assignment, "=")
         # The value is URL-quoted.  Unquote it.
-        value = urllib.unquote_plus(value)
+        value = urllib.parse.unquote_plus(value)
         # Set it in the map.
         result[name] = value
 
@@ -2152,9 +2151,7 @@ def make_help_link(help_text_tag, label="Help", **substitutions):
     'substitutions' -- Substitutions to the help diagnostic."""
     
     # Construct the help text.
-    help_text = apply(diagnostic.get_help_set().Generate,
-                      (help_text_tag, "help", None),
-                      substitutions)
+    help_text = diagnostic.get_help_set().Generate(*(help_text_tag, "help", None), **substitutions)
     # Convert it to HTML.
     help_text = qm.structured_text.to_html(help_text)
     # Make the link.
@@ -2294,7 +2291,7 @@ def make_choose_control(field_name,
     # input control.
     buttons = []
     # Construct the encoding for the items initially included.
-    initial_value = string.join(map(item_to_value, included_items), ",")
+    initial_value = string.join(list(map(item_to_value, included_items)), ",")
     # The hidden control that will contain the encoded representation of
     # the included items.
     hidden_control = '<input type="hidden" name="%s" value="%s">' \
@@ -2458,7 +2455,7 @@ def format_color(red, green, blue):
 def javascript_escape(text):
     """Equivalent to the JavaScript 'escape' built-in function."""
 
-    text = urllib.quote(text)
+    text = urllib.parse.quote(text)
     text = string.replace(text, ",", "%2C")
     return text
 
@@ -2466,7 +2463,7 @@ def javascript_escape(text):
 def javascript_unescape(text):
     """Equivalent to the JavaScript 'unescape' built-in function."""
 
-    return urllib.unquote(text)
+    return urllib.parse.unquote(text)
 
 
 def make_submit_button(title="OK"):

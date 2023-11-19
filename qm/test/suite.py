@@ -128,10 +128,10 @@ class Suite(qm.extension.Extension):
             # Accumulate them.
             suite_ids.extend(sub_suite_ids)
             # Retrieve the 'Suite' objects.
-            sub_suites = map(self.GetDatabase().GetSuite, sub_suite_ids)
+            sub_suites = list(map(self.GetDatabase().GetSuite, sub_suite_ids))
             # Don't expand ordinary suites contained in implicit suites.
             if suite.IsImplicit():
-                sub_suites = filter(lambda s: s.IsImplicit(), sub_suites)
+                sub_suites = [s for s in sub_suites if s.IsImplicit()]
             # Add contained suites to the work list.
             work_list.extend(sub_suites)
 

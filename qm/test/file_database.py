@@ -53,7 +53,7 @@ class FileDatabase(Database):
 
         path = self.GetTestPath(test_id)
         if not self._IsTestFile(path):
-            raise NoSuchTestError, test_id
+            raise NoSuchTestError(test_id)
 
         return self._GetTestFromPath(test_id, os.path.normpath(path))
 
@@ -100,7 +100,7 @@ class FileDatabase(Database):
 
         path = self.GetSuitePath(suite_id)
         if not self._IsSuiteFile(path):
-            raise NoSuchSuiteError, suite_id
+            raise NoSuchSuiteError(suite_id)
 
         # There are two kinds of suites: directories (which are
         # implicit suites), and files (which are explicit suites).
@@ -157,7 +157,7 @@ class FileDatabase(Database):
 
         path = self.GetResourcePath(resource_id)
         if not self._IsResourceFile(path):
-            raise NoSuchResourceError, resource_id
+            raise NoSuchResourceError(resource_id)
 
         return self._GetResourceFromPath(resource_id, os.path.normpath(path))
 
@@ -390,7 +390,7 @@ class FileDatabase(Database):
         if not os.path.isfile(path):
             raise { Database.RESOURCE : NoSuchResourceError,
                     Database.TEST: NoSuchTestError,
-                    Database.SUITE: NoSuchSuiteError }[kind], id
+                    Database.SUITE: NoSuchSuiteError }[kind](id)
 
         os.remove(path)
 

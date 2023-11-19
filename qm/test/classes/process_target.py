@@ -15,7 +15,7 @@
 # Imports
 ########################################################################
 
-import cPickle
+import pickle
 import os
 import qm.executable
 import qm.test.cmdline
@@ -141,7 +141,7 @@ class ProcessTarget(Target):
                     [ qmtest_path, '-D', database_path, "remote" ])
 
         # Create the subprocesses.
-        for x in xrange(self.processes):
+        for x in range(self.processes):
             # Create two pipes: one to write commands to the remote
             # QMTest, and one to read responses.
             e = ProcessTarget.QMTestExecutable()
@@ -170,7 +170,7 @@ class ProcessTarget(Target):
         # Stop the children.
         for child in self.__children:
             try:
-                cPickle.dump("Stop", child[2])
+                pickle.dump("Stop", child[2])
                 child[2].close()
             except:
                 pass
@@ -197,7 +197,7 @@ class ProcessTarget(Target):
         self.__busy_children.append(child)
         # Write the test to the file.
         try:
-            cPickle.dump(("RunTest", descriptor.GetId(), context),
+            pickle.dump(("RunTest", descriptor.GetId(), context),
                          child[2])
         except:
             # We could not write to the child.  (One situation in
@@ -227,7 +227,7 @@ class ProcessTarget(Target):
         
         child = self.__children_by_fd[fd]
         try:
-            results = cPickle.load(child[1])
+            results = pickle.load(child[1])
             idle = None
             for result in results:
                 self._RecordResult(result)

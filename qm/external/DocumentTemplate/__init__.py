@@ -18,4 +18,4 @@ segregated in a separate package.
 $Id$'''
 __version__='$Revision$'[11:-2]
 
-from DocumentTemplate import String, File, HTML, HTMLDefault, HTMLFile
+from .DocumentTemplate import String, File, HTML, HTMLDefault, HTMLFile

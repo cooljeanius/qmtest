@@ -56,7 +56,7 @@ class ContextWrapper:
 
 
 
-class Context(types.DictType):
+class Context(dict):
     """Test-time and local configuration for tests.
 
     A 'Context' object contains all of the information a test needs to
@@ -148,7 +148,7 @@ class Context(types.DictType):
                 k = klass + '.' + variable
             else:
                 k = variable
-            if self.has_key(k):
+            if k in self:
                 return self[k]
             if not klass:
                 return default
@@ -247,19 +247,18 @@ class Context(types.DictType):
             try:
                 file = open(file_name, "r")
             except:
-                raise qm.cmdline.CommandError, \
-                      qm.error("could not read file", path=file_name)
+                raise qm.cmdline.CommandError(qm.error("could not read file", path=file_name))
         # Read the assignments.
         assignments = qm.common.read_assignments(file)
         # Add them to the context.
-        for (name, value) in assignments.items():
+        for (name, value) in list(assignments.items()):
             try:
                 # Insert it into the context.
                 self[name] = value
-            except ValueError, msg:
+            except ValueError as msg:
                 # The format of the context key is invalid, but
                 # raise a 'CommandError' instead.
-                raise qm.cmdline.CommandError, msg
+                raise qm.cmdline.CommandError(msg)
 
     
     # Methods to simulate a map object.
@@ -303,15 +302,15 @@ class Context(types.DictType):
     def items(self):
 
         if self.__context is None:
-            return super(Context, self).items()
+            return list(super(Context, self).items())
         else:
             # Have to be careful, because self.__context and self may
             # contain different values for the same keys, and the values
             # defined in self should override the values defined in
             # self.__context.
-            unified_dict = dict(self.__context.items())
+            unified_dict = dict(list(self.__context.items()))
             unified_dict.update(self)
-            return unified_dict.items()
+            return list(unified_dict.items())
 
 
     # Helper methods.

@@ -13,12 +13,12 @@
 "$Id$"
 
 import os
-import thread
+import _thread
 import re
 
-from DT_Util import ParseError, InstanceDict, TemplateDict, render_blocks, str
-from DT_Var import Var, Call, Comment
-from DT_Return import ReturnTag, DTReturn
+from .DT_Util import ParseError, InstanceDict, TemplateDict, render_blocks, str
+from .DT_Var import Var, Call, Comment
+from .DT_Return import ReturnTag, DTReturn
 
 _marker = []  # Create a new marker object.
 
@@ -57,9 +57,9 @@ class String:
 
     parse_error__roles__=()
     def parse_error(self, mess, tag, text, start):
-        raise ParseError, "%s, for tag %s, on line %s of %s" % (
+        raise ParseError("%s, for tag %s, on line %s of %s" % (
             mess, self.errQuote(tag), len(text[:start].split('\n')),
-            self.errQuote(self.__name__))
+            self.errQuote(self.__name__)))
 
     commands__roles__=()
     commands={
@@ -100,9 +100,9 @@ class String:
             cname, module, name = command
             d={}
             try:
-                exec 'from %s import %s' % (module, name) in d
+                exec('from %s import %s' % (module, name), d)
             except ImportError:
-                exec 'from DocumentTemplate.%s import %s' % (module, name) in d
+                exec('from DocumentTemplate.%s import %s' % (module, name), d)
             command=d[name]
             self.commands[cname]=command
         return tag, args, command, coname
@@ -125,7 +125,7 @@ class String:
 
         if fmt==']':
             if not command or name != command.name:
-                raise ParseError, ('unexpected end tag', tag)
+                raise ParseError('unexpected end tag', tag)
             return tag, args, None, None
         elif fmt=='[' or fmt=='!':
             if command and name in command.blockContinuations:
@@ -142,7 +142,7 @@ class String:
 
             try: return tag, args, self.commands[name], None
             except KeyError:
-                raise ParseError, ('Unexpected tag', tag)
+                raise ParseError('Unexpected tag', tag)
         else:
             # Var command
             args=args and ("%s %s" % (name, args)) or name
@@ -161,7 +161,7 @@ class String:
             l = mo.start(0)
 
             try: tag, args, command, coname = self._parseTag(mo)
-            except ParseError, m: self.parse_error(m[0],m[1],text,l)
+            except ParseError as m: self.parse_error(m[0],m[1],text,l)
 
             s=text[start:l]
             if s: result.append(s)
@@ -176,7 +176,7 @@ class String:
                     else: r=command(args)
                     if hasattr(r,'simple_form'): r=r.simple_form
                     result.append(r)
-                except ParseError, m: self.parse_error(m[0],tag,text,l)
+                except ParseError as m: self.parse_error(m[0],tag,text,l)
 
             mo = tagre.search(text,start)
 
@@ -211,7 +211,7 @@ class String:
             l = mo.start(0)
 
             try: tag, args, command, coname= self._parseTag(mo,scommand,sa)
-            except ParseError, m: self.parse_error(m[0],m[1], text, l)
+            except ParseError as m: self.parse_error(m[0],m[1], text, l)
 
             if command:
                 start=l+len(tag)
@@ -238,7 +238,7 @@ class String:
                         r=scommand(blocks)
                         if hasattr(r,'simple_form'): r=r.simple_form
                         result.append(r)
-                    except ParseError, m: self.parse_error(m[0],stag,text,l)
+                    except ParseError as m: self.parse_error(m[0],stag,text,l)
 
                     return start
 
@@ -250,7 +250,7 @@ class String:
             l = mo.start(0)
 
             try: tag, args, command, coname= self._parseTag(mo,scommand,sa)
-            except ParseError, m: self.parse_error(m[0],m[1], text, l)
+            except ParseError as m: self.parse_error(m[0],m[1], text, l)
 
             start=l+len(tag)
             if command:
@@ -293,7 +293,7 @@ class String:
         Keyword arguments are used to provide default values.
         """
         if name: name=self.globals[name]
-        for key in kw.keys(): self.globals[key]=kw[key]
+        for key in list(kw.keys()): self.globals[key]=kw[key]
         return name
 
     var__roles__=()
@@ -307,7 +307,7 @@ class String:
         Keyword arguments are used to provide variable values.
         """
         if name: name=self._vars[name]
-        for key in kw.keys(): self._vars[key]=kw[key]
+        for key in list(kw.keys()): self._vars[key]=kw[key]
         return name
 
     munge__roles__=()
@@ -335,7 +335,7 @@ class String:
 
     cook__roles__=()
     def cook(self,
-             cooklock=thread.allocate_lock(),
+             cooklock=_thread.allocate_lock(),
              ):
         cooklock.acquire()
         try:
@@ -347,8 +347,8 @@ class String:
     initvars__roles__=()
     def initvars(self, globals, vars):
         if globals:
-            for k in globals.keys():
-                if k[:1] != '_' and not vars.has_key(k): vars[k]=globals[k]
+            for k in list(globals.keys()):
+                if k[:1] != '_' and k not in vars: vars[k]=globals[k]
         self.globals=vars
         self._vars={}
 
@@ -442,8 +442,8 @@ class String:
             pushed=0
 
         level=md.level
-        if level > 200: raise SystemError, (
-            'infinite recursion in document template')
+        if level > 200: raise SystemError((
+            'infinite recursion in document template'))
         md.level=level+1
 
         if client is not None:
@@ -470,7 +470,7 @@ class String:
             value = self.ZDocumentTemplate_beforeRender(md, _marker)
             if value is _marker:
                 try: result = render_blocks(self._v_blocks, md)
-                except DTReturn, v: result = v.v
+                except DTReturn as v: result = v.v
                 self.ZDocumentTemplate_afterRender(md, result)
                 return result
             else:
@@ -488,7 +488,7 @@ class String:
     def __getstate__(self, _special=('_v_', '_p_')):
         # Waaa, we need _v_ behavior but we may not subclass Persistent
         d={}
-        for k, v in self.__dict__.items():
+        for k, v in list(self.__dict__.items()):
             if k[:3] in _special: continue
             d[k]=v
         return d
@@ -525,4 +525,4 @@ class File(FileMixin, String):
     template is used the first time.
     """
     manage_edit__roles__=()
-    def manage_edit(self,data): raise TypeError, 'cannot edit files'
+    def manage_edit(self,data): raise TypeError('cannot edit files')

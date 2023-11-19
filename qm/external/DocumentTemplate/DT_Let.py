@@ -40,8 +40,8 @@
    as desired.
 '''
 
-from DT_Util import render_blocks, Eval, ParseError
-from DT_Util import str # Probably needed due to hysterical pickles.
+from .DT_Util import render_blocks, Eval, ParseError
+from .DT_Util import str # Probably needed due to hysterical pickles.
 import re
 
 
@@ -61,9 +61,9 @@ class Let:
                                 # expr shorthand
                 expr=expr[1:-1]
                 try: args[i] = name, Eval(expr).eval
-                except SyntaxError, v:
+                except SyntaxError as v:
                     m,(huh,l,c,src) = v
-                    raise ParseError, (
+                    raise ParseError(
                         '<strong>Expression (Python) Syntax error</strong>:'
                         '\n<pre>\n%s\n</pre>\n' % v[0],
                         'let')
@@ -101,7 +101,7 @@ def parse_let_params(text,
         l=len(mo1.group(1))
     else:
         if not text or not text.strip(): return result
-        raise ParseError, ('invalid parameter: "%s"' % text, tag)
+        raise ParseError('invalid parameter: "%s"' % text, tag)
 
     result.append((name,value))
 

@@ -27,7 +27,7 @@ import pgdb
 ########################################################################
 
 if len(sys.argv) != 2:
-    print "Usage: %s <database_name>" % (sys.argv[0],)
+    print("Usage: %s <database_name>" % (sys.argv[0],))
     sys.exit(1)
 
 dbname = sys.argv[1]

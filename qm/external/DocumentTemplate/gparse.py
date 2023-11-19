@@ -58,21 +58,21 @@ def munge(ast, STAR=STAR, DOT=DOT, LSQB=LSQB, COLON=COLON, trailer=trailer):
                         if a[1][0]==LSQB:
                             if (a[2][0] != subscriptlist or
                                 a[2][1][0] != subscript):
-                                raise ParseError, (
-                                    'Unexpected form after left square brace')
+                                raise ParseError((
+                                    'Unexpected form after left square brace'))
 
                             slist=a[2]
                             if len(slist)==2:
                                 # One subscript, check for range and ...
                                 sub=slist[1]
                                 if sub[1][0]==DOT:
-                                    raise ParseError, (
-                                        'ellipses are not supported')
+                                    raise ParseError((
+                                        'ellipses are not supported'))
                                 l=len(sub)
                                 if l < 3 and sub[1][0] != COLON:
                                     ast[:i+1]=item_munge(ast, i)
                                 elif l < 5: ast[:i+1]=slice_munge(ast, i)
-                                else: raise ParseError, 'Invalid slice'
+                                else: raise ParseError('Invalid slice')
                                     
                             else: ast[:i+1]=item_munge(ast, i)
                             keep_going=1
@@ -150,7 +150,7 @@ def item_munge(ast, i):
     for sub in ast[i][2][1:]:
         if sub[0]==COMMA: append(sub)
         else:
-            if len(sub) != 2: raise ParseError, 'Invalid slice in subscript'
+            if len(sub) != 2: raise ParseError('Invalid slice in subscript')
             append([argument, sub[1]])
 
     return [power, [atom, [NAME, '__guarded_getitem__']],
@@ -178,7 +178,7 @@ def dot_munge(ast, i):
     append(a)
     append([COMMA,','])
 
-    a=(factor, (power, (atom, (STRING, `name`))))
+    a=(factor, (power, (atom, (STRING, repr(name)))))
     a=(argument, (test, (and_test, (not_test, (comparison,
        (expr, (xor_expr, (and_expr, (shift_expr, (arith_expr, 
        (term, a)))))))))))

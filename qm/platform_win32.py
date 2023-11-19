@@ -17,7 +17,7 @@
 # imports
 ########################################################################
 
-import common
+from . import common
 import os
 import qm
 import signal
@@ -40,7 +40,7 @@ default_shell = [os.environ.get("COMSPEC", r"C:\WINNT\SYSTEM32\CMD.EXE")]
 class SignalException(Exception):
 
     def __init__(self, *args):
-        raise NotImplementedError, "No 'SignalException' on Win32."
+        raise NotImplementedError("No 'SignalException' on Win32.")
 
 
 

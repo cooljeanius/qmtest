@@ -67,7 +67,7 @@ class ReaderTestRun(TestRun):
     def GetAllResults(self, directory = "", kind = Result.TEST):
 
         if directory == "":
-            return self.__results[kind].values()
+            return list(self.__results[kind].values())
         else:
             return [self.__results[kind][id] for id in self.__results[kind]
                     if id.startswith(directory)]
